@@ -1,1 +1,1 @@
-# algo_trading_practice
+# Algorithmic Trading Practice and Testing
