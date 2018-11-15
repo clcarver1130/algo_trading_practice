@@ -1,7 +1,13 @@
 import alpaca_trade_api as tradeapi
-from cam import key_id, and secret_key
+from cam import paper_key_id, paper_secret_key
+import pandas as pd
+import logging
+import time
 
-api = tradeapi.REST(key_id, secret_key)
+
+api = tradeapi.REST(paper_key_id, paper_secret_key, 'https://paper-api.alpaca.markets')
+df = pd.read_csv('constituents_csv.csv')
+stock_list = df['Symbol']
 
 def main():
     done = None
@@ -12,29 +18,18 @@ def main():
         clock = api.get_clock()
         now = clock.timestamp
         if clock.is_open and done != now.strftime('%Y-%m-%d'):
-            # ** do our stuff here! **
 
-            price_map = prices(<stock_list>) # ** Need to create stock ticker list **
+            price_map = prices(stock_list)
             orders = get_orders(api, price_map)
             trade(orders)
 
             # flag it as done so it doesn't work again for the day
-            # TODO: this isn't tolerant to the process restart
             done = now.strftime('%Y-%m-%d')
             logger.info(f'done for {done}')
 
         time.sleep(1)
 
 ## Helper Functions:
-def prices(symbols):
-    '''Get the map of prices in DataFrame with the symbol name key.'''
-    now = pd.Timestamp.now(tz=NY)
-    end_dt = now
-    if now.time() >= pd.Timestamp('09:30', tz=NY).time():
-        end_dt = now - \
-            pd.Timedelta(now.strftime('%H:%M:%S')) - pd.Timedelta('1 minute')
-    return _get_polygon_prices(symbols, end_dt)
-
 def _get_polygon_prices(symbols, end_dt, max_workers=5):
     '''Get the map of DataFrame price data from polygon, in parallel.'''
 
@@ -62,6 +57,16 @@ def _get_polygon_prices(symbols, end_dt, max_workers=5):
                     '{} generated an exception: {}'.format(
                         symbol, exc))
         return results
+
+def prices(symbols):
+    '''Get the map of prices in DataFrame with the symbol name key.'''
+    now = pd.Timestamp.now(tz=NY)
+    end_dt = now
+    if now.time() >= pd.Timestamp('09:30', tz=NY).time():
+        end_dt = now - \
+            pd.Timedelta(now.strftime('%H:%M:%S')) - pd.Timedelta('1 minute')
+    return _get_polygon_prices(symbols, end_dt)
+
 
 def calc_scores(price_map, dayindex=-1):
     '''Calculate scores based on the indicator and
