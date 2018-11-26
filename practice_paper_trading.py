@@ -3,6 +3,7 @@ from cam import paper_key_id, paper_secret_key
 import pandas as pd
 import logging
 import time
+import concurrent
 
 
 api = tradeapi.REST(paper_key_id, paper_secret_key, 'https://paper-api.alpaca.markets')
@@ -60,9 +61,9 @@ def _get_polygon_prices(symbols, end_dt, max_workers=5):
 
 def prices(symbols):
     '''Get the map of prices in DataFrame with the symbol name key.'''
-    now = pd.Timestamp.now(tz=NY)
+    now = pd.Timestamp.now(tz='US/Eastern')
     end_dt = now
-    if now.time() >= pd.Timestamp('09:30', tz=NY).time():
+    if now.time() >= pd.Timestamp('09:30', tz='US/Eastern').time():
         end_dt = now - \
             pd.Timedelta(now.strftime('%H:%M:%S')) - pd.Timedelta('1 minute')
     return _get_polygon_prices(symbols, end_dt)
