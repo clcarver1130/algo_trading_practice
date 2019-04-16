@@ -1,5 +1,6 @@
 import pandas as pd
 import schedule
+import time
 
 
 import krakenex
@@ -10,13 +11,14 @@ api.load_key('kraken_keys.py')
 
 
 def main():
+    print('Starting Script...')
     schedule.every(1).minutes.do(entry_exit_logic)
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 def entry_exit_logic():
-
+    print('Logic Check')
     # Calculate metrics
     currency = 'ZUSD'
     crypto = 'XXRP'
@@ -45,10 +47,14 @@ def entry_exit_logic():
     if (ewm_3 > ewm_20) & (holding_crypto==False):
         type = 'buy'
         api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
+        print('Bought Shares')
     elif (ewm_3 < ewm_20) & (holding_crypto==True):
         type = 'sell'
         api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
+        print('Sold Shares')
     else:
         print('Holding')
         pass
-        
+
+if __name__ == '__main__':
+    main()
