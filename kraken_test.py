@@ -47,7 +47,7 @@ def entry_exit_logic():
         api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
     elif (ewm_3 < ewm_20) & (holding_crypto==True):
         type = 'sell'
-        api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand)})
+        api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
     else:
         print('Holding')
         pass
