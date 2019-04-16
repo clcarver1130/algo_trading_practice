@@ -23,9 +23,9 @@ def entry_exit_logic():
     currency = 'ZUSD'
     crypto = 'XXRP'
     pair = crypto + currency
-    df = k.get_ohlc_data(pair)[0]
-    ewm_3 = df['close'].ewm(3).mean()[0]
-    ewm_20 = df['close'].ewm(20).mean()[0]
+    df = k.get_ohlc_data(pair)[0].sort_index()
+    ewm_3 = df['close'].ewm(3).mean()[-1]
+    ewm_20 = df['close'].ewm(20).mean()[-1]
 
     # Current holdings
     volume = k.get_account_balance()
@@ -36,7 +36,7 @@ def entry_exit_logic():
         pass
     try:
         crypto_on_hand = volume.loc[crypto][0]
-        holding_crypto = [True if len(k.get_open_positions()) > 0 else False]
+        holding_crypto = [True if len(k.get_account_balance()) >= 1 else False][0]
         current_price = df['close'][-1]
         affordable_shares = int(cash_on_hand/current_price)
     except:
