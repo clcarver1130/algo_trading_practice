@@ -23,7 +23,7 @@ def entry_exit_logic():
     currency = 'ZUSD'
     crypto = 'XXRP'
     pair = crypto + currency
-    df = k.get_ohlc_data(pair)[0]
+    df = k.get_ohlc_data(pair)[0].sort_index()
     ewm_3 = df['close'].ewm(3).mean()[-1]
     ewm_20 = df['close'].ewm(20).mean()[-1]
 
