@@ -36,7 +36,7 @@ def entry_exit_logic():
         pass
     try:
         crypto_on_hand = volume.loc[crypto][0]
-        holding_crypto = [True if len(k.get_open_positions()) > 0 else False][0]
+        holding_crypto = [True if len(k.get_account_balance()) >= 1 else False][0]
         current_price = df['close'][-1]
         affordable_shares = int(cash_on_hand/current_price)
     except:
