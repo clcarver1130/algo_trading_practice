@@ -1,6 +1,7 @@
 import pandas as pd
 import schedule
 import time
+from logger import logging
 
 
 import krakenex
@@ -11,22 +12,27 @@ api.load_key('kraken_keys.py')
 
 
 def main():
-    print('Starting Script...')
+    logging.info('Starting script...')
     schedule.every(1).minutes.do(entry_exit_logic)
     while True:
         schedule.run_pending()
         time.sleep(1)
 
 def entry_exit_logic():
-    print('Logic Check')
+    
+    now = str(pd.Timestamp.today())[0:16]
+    logging.info('Calculating metrics for {now}...'.format(now=now))
+    
     # Calculate metrics
     currency = 'ZUSD'
     crypto = 'XXRP'
     pair = crypto + currency
-    df = k.get_ohlc_data(pair)[0].sort_index()
+    df = k.get_ohlc_data(pair, interval=30, ascending=True)[0]
     ewm_3 = df['close'].ewm(3).mean()[-1]
     ewm_20 = df['close'].ewm(20).mean()[-1]
-
+    
+    logging.info('3-EMA is: {ewm_3} and 20-EMA is: {ewm_20}'.format(ewm_3=ewm_3, ewm_20=ewm_20)) 
+    
     # Current holdings
     volume = k.get_account_balance()
     try:
@@ -47,13 +53,13 @@ def entry_exit_logic():
     if (ewm_3 > ewm_20) & (holding_crypto==False):
         type = 'buy'
         api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
-        print('Bought Shares')
+        logging.info('Bought {shares} shares at {price}'.format(shares=affordable_shares, price=current_price))
     elif (ewm_3 < ewm_20) & (holding_crypto==True):
         type = 'sell'
         api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
-        print('Sold Shares')
+        logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
     else:
-        print('Holding')
+        logging.info('Holding current position')
         pass
 
 if __name__ == '__main__':
