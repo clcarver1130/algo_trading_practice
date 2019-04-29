@@ -39,14 +39,14 @@ def entry_exit_logic():
     volume = k.get_account_balance()
     try:
         cash_on_hand = volume.loc[currency][0]
+        current_price = df['close'][-1]
+        affordable_shares = int(cash_on_hand/current_price)
     except:
         print('No USD On Hand.')
         pass
     try:
         crypto_on_hand = volume.loc[crypto][0]
         holding_crypto = [True if volume.loc[crypto][0] >= 1 else False][0]
-        current_price = df['close'][-1]
-        affordable_shares = int(cash_on_hand/current_price)
     except:
         print('No Cryptocurreny On Hand.')
         pass
