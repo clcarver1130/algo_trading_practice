@@ -6,6 +6,7 @@ from logger import logging
 
 import krakenex
 from pykrakenapi import KrakenAPI
+from talib import EMA
 api = krakenex.API()
 k = KrakenAPI(api)
 api.load_key('kraken_keys.py')
@@ -29,9 +30,8 @@ def entry_exit_logic():
     pair = crypto + currency
     df = k.get_ohlc_data(pair, interval=30, ascending=True)[0]
     df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')  
-    df
-    ewm_3 = df['close'].ewm(3).mean()[-1]
-    ewm_20 = df['close'].ewm(20).mean()[-1]
+    ewm_3 = EMA(df['close'], 3)[-1]
+    ewm_20 = EMA(df['close'], 20)[-1]
     
     logging.info('3-EMA is: {ewm_3} and 20-EMA is: {ewm_20}'.format(ewm_3=ewm_3, ewm_20=ewm_20)) 
     
