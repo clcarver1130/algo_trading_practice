@@ -25,9 +25,11 @@ def entry_exit_logic():
     
     # Calculate metrics
     currency = 'ZUSD'
-    crypto = 'XXRP'
+    crypto = 'XETH'
     pair = crypto + currency
     df = k.get_ohlc_data(pair, interval=30, ascending=True)[0]
+    df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')  
+    df
     ewm_3 = df['close'].ewm(3).mean()[-1]
     ewm_20 = df['close'].ewm(20).mean()[-1]
     
