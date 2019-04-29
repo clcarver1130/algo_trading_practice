@@ -49,6 +49,7 @@ def entry_exit_logic():
         holding_crypto = [True if volume.loc[crypto][0] >= 1 else False][0]
     except:
         print('No Cryptocurreny On Hand.')
+        holding_crypto = False
         pass
 
     # Entry-Exit Logic
