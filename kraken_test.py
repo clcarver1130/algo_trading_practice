@@ -20,21 +20,22 @@ def main():
         time.sleep(1)
 
 def entry_exit_logic():
-    
+
     now = str(pd.Timestamp.today())[0:16]
     logging.info('Calculating metrics for {now}...'.format(now=now))
-    
+
     # Calculate metrics
     currency = 'ZUSD'
     crypto = 'XETH'
     pair = crypto + currency
-    df = k.get_ohlc_data(pair, interval=30, ascending=True)[0]
-    df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')  
+    df = k.get_ohlc_data(pair, interval=15, ascending=True)[0]
+    df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
     ewm_3 = EMA(df['close'], 3)[-1]
-    ewm_20 = EMA(df['close'], 20)[-1]
-    
-    logging.info('3-EMA is: {ewm_3} and 20-EMA is: {ewm_20}'.format(ewm_3=ewm_3, ewm_20=ewm_20)) 
-    
+    ewm_15 = EMA(df['close'], 15)[-1]
+    ewm_25 = EMA(df['close'], 25)[-1]
+
+    logging.info('3-EMA is: {ewm_3} and 15-EMA is: {ewm_15} and 25-EMA is: {ewm_25}'.format(ewm_3=ewm_3, ewm_15=ewm_15, ewm_25=ewm_25))
+
     # Current holdings
     volume = k.get_account_balance()
     try:
@@ -53,13 +54,13 @@ def entry_exit_logic():
         pass
 
     # Entry-Exit Logic
-    if (ewm_3 > ewm_20) & (holding_crypto==False):
+    if (ewm_3 > ewm_25) & (holding_crypto==False):
         type = 'buy'
-        api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
+        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
         logging.info('Bought {shares} shares at {price}'.format(shares=affordable_shares, price=current_price))
-    elif (ewm_3 < ewm_20) & (holding_crypto==True):
+    elif ((ewm_3 < ewm_15) | (ewm_3 < ewm_25)) & (holding_crypto==True):
         type = 'sell'
-        api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
+        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
         logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
     else:
         logging.info('Holding current position')
