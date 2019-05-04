@@ -57,11 +57,17 @@ def entry_exit_logic():
     if (ewm_3 > ewm_25) & (holding_crypto==False):
         type = 'buy'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
-        logging.info('Bought {shares} shares at {price}'.format(shares=affordable_shares, price=current_price))
+        if len(order['error']) == 0:
+            logging.info('Bought {shares} shares at {price}'.format(shares=affordable_shares, price=current_price))
+        else:
+            logging.info('Trade Canceled: {error}'.format(error=order['error']))
     elif ((ewm_3 < ewm_15) | (ewm_3 < ewm_25)) & (holding_crypto==True):
         type = 'sell'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
-        logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
+        if len(order['error']) == 0:
+            logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
+        else:
+            logging.info('Trade Canceled: {error}'.format(error=order['error']))
     else:
         logging.info('Holding current position')
         pass
