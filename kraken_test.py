@@ -14,7 +14,7 @@ api.load_key('kraken_keys.py')
 
 def main():
     logging.info('Starting script...')
-    schedule.every(1).minutes.do(entry_exit_logic)
+    schedule.every(15).minutes.do(entry_exit_logic)
     while True:
         schedule.run_pending()
         time.sleep(1)
