@@ -14,7 +14,7 @@ api.load_key('kraken_keys.py')
 
 def main():
     logging.info('Starting script...')
-    schedule.every(15).minutes.do(entry_exit_logic)
+    schedule.every(30).minutes.do(entry_exit_logic)
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -31,10 +31,10 @@ def entry_exit_logic():
     df = k.get_ohlc_data(pair, interval=15, ascending=True)[0]
     df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
     ewm_3 = EMA(df['close'], 3)[-1]
-    ewm_15 = EMA(df['close'], 15)[-1]
-    ewm_25 = EMA(df['close'], 25)[-1]
+    ewm_20 = EMA(df['close'], 20)[-1]
+  
 
-    logging.info('3-EMA is: {ewm_3} and 15-EMA is: {ewm_15} and 25-EMA is: {ewm_25}'.format(ewm_3=ewm_3, ewm_15=ewm_15, ewm_25=ewm_25))
+    logging.info('3-EMA is: {ewm_3} and 20-EMA is: {ewm_20}'.format(ewm_3=ewm_3, ewm_20=ewm_20))
 
     # Current holdings
     volume = k.get_account_balance()
@@ -54,14 +54,14 @@ def entry_exit_logic():
         pass
 
     # Entry-Exit Logic
-    if (ewm_3 > ewm_25) & (holding_crypto==False):
+    if (ewm_3 > ewm_20) & (holding_crypto==False):
         type = 'buy'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
         if len(order['error']) == 0:
             logging.info('Bought {shares} shares at {price}'.format(shares=affordable_shares, price=current_price))
         else:
             logging.info('Trade Canceled: {error}'.format(error=order['error']))
-    elif ((ewm_3 < ewm_15) | (ewm_3 < ewm_25)) & (holding_crypto==True):
+    elif (ewm_3 <= ewm_20) & (holding_crypto==True):
         type = 'sell'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
         if len(order['error']) == 0:
