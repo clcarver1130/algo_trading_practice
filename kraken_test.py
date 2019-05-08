@@ -28,7 +28,7 @@ def entry_exit_logic():
     currency = 'ZUSD'
     crypto = 'XETH'
     pair = crypto + currency
-    df = k.get_ohlc_data(pair, interval=15, ascending=True)[0]
+    df = k.get_ohlc_data(pair, interval=30, ascending=True)[0]
     df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
     ewm_3 = EMA(df['close'], 3)[-1]
     ewm_20 = EMA(df['close'], 20)[-1]
