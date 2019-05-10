@@ -28,17 +28,20 @@ def entry_exit_logic():
     currency = 'ZUSD'
     crypto = 'XETH'
     pair = crypto + currency
-    df = k.get_ohlc_data(pair, interval=15, ascending=True)[0]
-    df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
-    ewm_3 = EMA(df['close'], 3)[-1]
-    ewm_20 = EMA(df['close'], 20)[-1]
-  
-
-    logging.info('3-EMA is: {ewm_3} and 20-EMA is: {ewm_20}'.format(ewm_3=ewm_3, ewm_20=ewm_20))
+    try: 
+        df = k.get_ohlc_data(pair, interval=30, ascending=True)[0]
+        df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
+        ewm_3 = EMA(df['close'], 3)[-1]
+        ewm_20 = EMA(df['close'], 20)[-1]
+        logging.info('3-EMA is: {ewm_3} and 20-EMA is: {ewm_20}'.format(ewm_3=ewm_3, ewm_20=ewm_20))
+    expect:
+        logging.info('Data Request Error.')
+        pass
+ 
 
     # Current holdings
-    volume = k.get_account_balance()
     try:
+        volume = k.get_account_balance()
         cash_on_hand = volume.loc[currency][0]
         current_price = df['close'][-1]
         affordable_shares = int(cash_on_hand/current_price)
