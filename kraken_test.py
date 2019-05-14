@@ -34,7 +34,7 @@ def entry_exit_logic():
         ewm_3 = EMA(df['close'], 3)[-1]
         ewm_20 = EMA(df['close'], 20)[-1]
         logging.info('3-EMA is: {ewm_3} and 20-EMA is: {ewm_20}'.format(ewm_3=ewm_3, ewm_20=ewm_20))
-    expect:
+    except:
         logging.info('Data Request Error.')
         pass
  
