@@ -69,7 +69,7 @@ def entry_exit_logic():
             logging.info('Trade Canceled: {error}'.format(error=order['error']))
     elif (ewm_3 <= ewm_20) & (holding_crypto==True):
         type = 'sell'
-        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', leverage': str(leverage), 'volume': 0})
+        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'leverage': str(leverage), 'volume': 0})
         if len(order['error']) == 0:
             logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
         else:
