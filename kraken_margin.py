@@ -46,7 +46,8 @@ def entry_exit_logic():
         volume = k.get_account_balance()
         cash_on_hand = volume.loc[currency][0]
         current_price = df['close'][-1]
-        affordable_shares = int(cash_on_hand/current_price)
+        leverage = 5
+        margin_shares = (cash_on_hand*leverage)/current_price
     except:
         print('No USD On Hand.')
         pass
@@ -61,14 +62,14 @@ def entry_exit_logic():
     # Entry-Exit Logic
     if (ewm_3 > ewm_20) & (holding_crypto==False):
         type = 'buy'
-        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': affordable_shares})
+        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'limit', 'price': current_price, 'leverage': str(leverage), 'volume': margin_shares})
         if len(order['error']) == 0:
             logging.info('Bought {shares} shares at {price}'.format(shares=affordable_shares, price=current_price))
         else:
             logging.info('Trade Canceled: {error}'.format(error=order['error']))
     elif (ewm_3 <= ewm_20) & (holding_crypto==True):
         type = 'sell'
-        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'volume': crypto_on_hand})
+        order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', leverage': str(leverage), 'volume': 0})
         if len(order['error']) == 0:
             logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
         else:
