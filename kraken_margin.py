@@ -2,9 +2,6 @@ import pandas as pd
 import schedule
 import time
 from logger import logging
-import requests
-session = requests.Session()
-session.verify = False
 
 import krakenex
 from pykrakenapi import KrakenAPI
@@ -47,13 +44,13 @@ def entry_exit_logic():
         cash_on_hand = volume.loc[currency][0]
         current_price = df['close'][-1]
         leverage = 5
-        margin_shares = int((cash_on_hand*leverage)/current_price)
+        margin_shares = (cash_on_hand*leverage)/current_price
     except:
         print('No USD On Hand.')
         pass
     try:
         crypto_on_hand = volume.loc[crypto][0]
-        holding_crypto = [True if volume.loc[crypto][0] >= 1 else False][0]
+        holding_crypto_position = [True if len(k.get_open_positions()) > 0 else False][0]
     except:
         print('No Cryptocurreny On Hand.')
         holding_crypto = False
@@ -78,5 +75,5 @@ def entry_exit_logic():
         logging.info('Holding current position')
         pass
 
-if __name__ == '__main__':
+if __name__ == '__main__':c
     main()
