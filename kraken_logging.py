@@ -15,6 +15,7 @@ k = KrakenAPI(api)
 api.load_key('kraken_keys.py')
 
 df = k.get_trades_history()[0]
+df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
 
 df2 = df[['cost', 'fee', 'margin', 'price', 'type', 'vol']]
 df_shifted = df2.add_suffix('_buy').join(df2.shift(1).add_suffix('_sell'))
@@ -28,26 +29,28 @@ df_trades['abs_return_adj'] = (df_trades['cost_sell'] - df_trades['cost_buy']) -
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import plotly.graph_objs as go
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+app = dash.Dash(__name__)
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-
-app.layout = html.Div(children=[
-    html.H1(children='ETH Trading Bot Reporting'),
-    dcc.Graph(
-    id='example-graph',
-    figure={
-        'data': [
-            {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
-            {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'Montréal'},
-        ],
-        'layout': {
-            'title': 'Dash Data Visualization'
-        }
-    }
-)
-])
+app.layout = html.Div([
+                        html.H1('Ethereum Trading Bot'),
+                        dcc.Graph(
+                            figure = {
+                                'data': [
+                                    go.Scatter(
+                                    x = df_trades.index,
+                                    y = df_trades['pct_return'],
+                                    mode = 'lines+markers'
+                                                )
+                                        ],
+                                 'layout' : go.Layout(
+                                    xaxis={'title': 'Time'},
+                                    yaxis={'title': 'Percent Return'},
+                                    margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                                            )
+                                    })
+                        ])
 
 if __name__ == '__main__':
     app.run_server(debug=True)
