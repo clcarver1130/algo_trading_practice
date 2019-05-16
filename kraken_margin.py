@@ -47,7 +47,7 @@ def entry_exit_logic():
         cash_on_hand = volume.loc[currency][0]
         current_price = df['close'][-1]
         leverage = 5
-        margin_shares = (cash_on_hand*leverage)/current_price
+        margin_shares = (int(cash_on_hand)*leverage)/current_price
     except:
         print('No USD On Hand.')
         pass
