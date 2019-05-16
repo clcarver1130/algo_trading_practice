@@ -75,5 +75,5 @@ def entry_exit_logic():
         logging.info('Holding current position')
         pass
 
-if __name__ == '__main__':c
+if __name__ == '__main__':
     main()
