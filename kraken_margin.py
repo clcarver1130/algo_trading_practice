@@ -53,18 +53,18 @@ def entry_exit_logic():
         holding_crypto_position = [True if len(k.get_open_positions()) > 0 else False][0]
     except:
         print('No Cryptocurreny On Hand.')
-        holding_crypto = False
+        holding_crypto_position = False
         pass
 
     # Entry-Exit Logic
-    if (ewm_3 > ewm_20) & (holding_crypto==False):
+    if (ewm_3 > ewm_20) & (holding_crypto_position==False):
         type = 'buy'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'limit', 'price': current_price, 'leverage': str(leverage), 'volume': margin_shares})
         if len(order['error']) == 0:
             logging.info('Bought {shares} shares at {price}'.format(shares=margin_shares, price=current_price))
         else:
             logging.info('Trade Canceled: {error}'.format(error=order['error']))
-    elif (ewm_3 <= ewm_20) & (holding_crypto==True):
+    elif (ewm_3 <= ewm_20) & (holding_crypto_position==True):
         type = 'sell'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'leverage': str(leverage), 'volume': 0})
         if len(order['error']) == 0:
