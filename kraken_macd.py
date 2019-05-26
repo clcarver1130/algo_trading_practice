@@ -57,23 +57,7 @@ def entry_exit_logic():
         open_position = False
         pass
 
-    # # Check for open position
-    # if open_position == True:
-    #
-    #     # If open position
-    #     if
-    #     # Check sell logic
-    #
-    #         # If sell logic true
-    #              #  Sell
-    #              # Check buy logic
-    #         # Else hold
-    #
-    #
-    #     # Else buy logic
-
-
-    # Open Long
+    # Entry Exit Long 
     if (macd_current > signal_current) & (open_position==False):
         type = 'buy'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'limit', 'price': current_price, 'leverage': str(leverage), 'volume': margin_shares})
