@@ -12,21 +12,20 @@ api.load_key('kraken_keys.py')
 
 
 def main():
-    logging.info('Starting script...')
-    # schedule.every(1).hours.do(entry_exit_logic)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    currency = 'ZUSD'
+    crypto = 'XETH'
+    pair = crypto + currency
+    current_price, macd, signal = calculate_macd(pair)
+    cash_on_hand, crypto_on_hand, margin_shares, open_position = calculate_balances(current_price, currency, crypto)
+    exit_logic(pair, open_position, macd, signal, current_price, margin_shares)
 
-def calculate_macd(agg=60, fast=12, slow=26, signal=9):
+
+def calculate_macd(pair, agg=60, fast=12, slow=26, signal=9):
 
     now = str(pd.Timestamp.today())[0:16]
     logging.info('Calculating MACD for {now}...'.format(now=now))
 
     # Calculate metrics
-    currency = 'ZUSD'
-    crypto = 'XETH'
-    pair = crypto + currency
     try:
         df = k.get_ohlc_data(pair, interval=agg, ascending=True)[0]
         df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
@@ -41,7 +40,7 @@ def calculate_macd(agg=60, fast=12, slow=26, signal=9):
         pass
 
 
-def calculate_balances(current_price, leverage=5):
+def calculate_balances(current_price, currency, crypto, leverage=5):
     try:
         volume = k.get_account_balance()
         cash_on_hand = volume.loc[currency][0]
@@ -65,7 +64,7 @@ def calc_position_type():
     positions = k.get_open_positions()
     return 'long' if [positions[p]  for p in positions][0]['type']=='buy' else 'short'
 
-def exit_logic(open_position):
+def exit_logic(pair, open_position, macd_current, signal_current, current_price, margin_shares):
     if open_position == True:
         position_type = calc_position_type()
         if position_type == 'long':
@@ -74,31 +73,28 @@ def exit_logic(open_position):
                 order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'leverage': str(leverage), 'volume': 0})
                 if len(order['error']) == 0:
                     logging.info('Closed long position.')
-                    entry_logic()
+                    entry_logic(pair, macd_current, signal_current, current_price, margin_shares)
                 else:
                     logging.info('Trade Canceled: {error}'.format(error=order['error']))
             else:
                 logging.info('Holding current position')
-                pass     # Pass or Continue? Or Break?
         else: # position_type=='short'
             if (macd_current >= signal_current):
                 type = 'buy'
                 order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'leverage': str(leverage), 'volume': 0})
                 if len(order['error']) == 0:
                     logging.info('Closed short position')
-                    entry_logic()
+                    entry_logic(pair, macd_current, signal_current, current_price, margin_shares)
                 else:
                     logging.info('Trade Canceled: {error}'.format(error=order['error']))
             else:
                 logging.info('Holding current position')
                 pass
     else:
-        entry_logic()
+        entry_logic(pair, macd_current, signal_current, current_price, margin_shares)
 
 
-
-def entry_logic():
-
+def entry_logic(pair, macd_current, signal_current, current_price, margin_shares, leverage=5):
     if macd_current > signal_current:
         type = 'buy'
         order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'limit', 'price': current_price, 'leverage': str(leverage), 'volume': margin_shares})
@@ -114,5 +110,11 @@ def entry_logic():
         else:
             logging.info('Trade Canceled: {error}'.format(error=order['error']))
 
+
+
 if __name__ == '__main__':
-    main()
+    logging.info('Starting script...')
+    schedule.every(1).hours.do(main)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
