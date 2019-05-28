@@ -64,7 +64,7 @@ def calc_position_type():
     positions = k.get_open_positions()
     return 'long' if [positions[p]  for p in positions][0]['type']=='buy' else 'short'
 
-def exit_logic(pair, open_position, macd_current, signal_current, current_price, margin_shares):
+def exit_logic(pair, open_position, macd_current, signal_current, current_price, margin_shares, leverage=5):
     if open_position == True:
         position_type = calc_position_type()
         if position_type == 'long':
