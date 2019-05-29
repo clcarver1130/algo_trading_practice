@@ -71,6 +71,8 @@ def exit_logic(pair, open_position, macd_current, signal_current, current_price,
             if (macd_current <= signal_current):
                 type = 'sell'
                 order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'leverage': str(leverage), 'volume': 0})
+                while len(k.get_open_orders()) > 0:
+                    time.sleep(1)
                 if len(order['error']) == 0:
                     logging.info('Closed long position.')
                     entry_logic(pair, macd_current, signal_current, current_price, margin_shares)
@@ -82,6 +84,8 @@ def exit_logic(pair, open_position, macd_current, signal_current, current_price,
             if (macd_current >= signal_current):
                 type = 'buy'
                 order = api.query_private('AddOrder', {'pair': pair, 'type': type, 'ordertype':'market', 'leverage': str(leverage), 'volume': 0})
+                while len(k.get_open_orders()) > 0:
+                    time.sleep(1)
                 if len(order['error']) == 0:
                     logging.info('Closed short position')
                     entry_logic(pair, macd_current, signal_current, current_price, margin_shares)
