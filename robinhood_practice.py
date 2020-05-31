@@ -1,4 +1,4 @@
-# Main libraries
+### Main libraries
 import pandas as pd
 import schedule
 import time
@@ -8,12 +8,12 @@ from talib import MACD, ADX, MINUS_DI, PLUS_DI
 from coinapi_rest_v1 import CoinAPIv1
 
 
-# Robinhood specific libraries and login
+### Robinhood specific libraries and login
 import robin_stocks as r
 from logins import robin_email, robin_password
 login = r.login(robin_email, robin_password)
 
-# CoinAPI login
+### CoinAPI login
 from logins import CoinAPI_KEY
 coin_api = CoinAPIv1(CoinAPI_KEY)
 
@@ -25,7 +25,7 @@ days_of_data = 1
 
 def scheduler():
     logging.info('Starting script...')
-    schedule.every(1).hours.do(main)
+    schedule.every(30).minutes.do(main)
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -35,15 +35,22 @@ def main():
     now = str(pd.Timestamp.today())[0:16]
     logging.info('Calculating metrics for {now}...'.format(now=now))
 
+    # Pull data:
     data_since = (pd.Timestamp.today() - datetime.timedelta(days=days_of_data)).date().isoformat()
     df_historical = get_historical_data(symbol_id, aggregation, data_since)
-    df_historical.tail()
+
+    # Calculate indicators:
     current_indicators = calculate_indicators(df_historical)
-    print(current_indicators)
+
+    #
+
 
 def get_historical_data(symbol, agg, time_window):
-    df = pd.DataFrame(coin_api.ohlcv_historical_data(symbol, {'period_id':agg, 'time_start':time_window})).set_index('time_period_start')
-    return df
+    try: 
+        df = pd.DataFrame(coin_api.ohlcv_historical_data(symbol, {'period_id':agg, 'time_start':time_window})).set_index('time_period_start')
+        return df
+    except:
+        logging.info('Data Request Error.')
 
 def calculate_indicators(df):
 
@@ -73,3 +80,7 @@ def calculate_indicators(df):
     indicator_dict['di_minus'] = di_minus[-1]
 
     return indicator_dict
+
+def calculate_balances(df_historical, current_indicators):
+    cash_on_hand = r.load_account_profile()['crypto_buying_power']
+    crypto_to_sell = r.get_crypto_positions()[0]['quantity_available']
