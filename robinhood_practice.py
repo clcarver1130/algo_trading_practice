@@ -25,13 +25,6 @@ aggregation = '30MIN'
 hours_of_data = 30
 
 
-def scheduler():
-    logging.info('Starting script...')
-    schedule.every(30).minutes.do(main)
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
 def main():
 
     now = str(pd.Timestamp.today())[0:16]
@@ -53,6 +46,7 @@ def main():
     else:
         entry_logic(current_indicators, current_balances)
 
+    logging.info('Current check complete.')
 
 def get_historical_data(symbol, agg, time_window):
     try:
@@ -63,6 +57,8 @@ def get_historical_data(symbol, agg, time_window):
 
 def calculate_indicators(df):
 
+    logging.info('Calculating indicators...')
+
     # Build dictionary:
     indicator_dict = dict()
 
@@ -72,7 +68,7 @@ def calculate_indicators(df):
     fast = 12
     slow = 26
     signal = 9
-    macd, macdsignal, macdhist = MACD(df_historical['price_close'], fast, slow, signal)
+    macd, macdsignal, macdhist = MACD(df['price_close'], fast, slow, signal)
     indicator_dict['macd_current'] = macd[-1]
     indicator_dict['macd_signal_current'] = macdsignal[-1]
 
@@ -92,12 +88,23 @@ def calculate_indicators(df):
 
 def calculate_balances():
 
+    logging.info('Looking up current balances...')
+
     # Calculate our on hand cash and the ETH amount:
-    cash_on_hand = r.load_account_profile()['crypto_buying_power']
-    crypto_to_sell = r.get_crypto_positions()[0]['quantity_available']
+    try:
+        cash_on_hand = r.load_account_profile()['crypto_buying_power']
+    except:
+        logging.info('No cash on hand.')
+
+    try:
+        crypto_to_sell = float(r.get_crypto_positions()[0]['quantity_available'])
+    except:
+        logging.info('No crypto on hand.')
 
     # Calculate an open_position flag:
-    open_position = True if len(crypto_to_sell) > 0 else False
+    open_position = True if crypto_to_sell > 0 else False
+    open_position
+
 
     # Save to a dictionary and return:
     current_balances = {'cash_on_hand':cash_on_hand, 'crypto_to_sell':crypto_to_sell, 'open_position': open_position}
@@ -115,8 +122,9 @@ def entry_logic(current_indicators, current_balances):
     # Calculate entry logic:
     if (macd_current > macd_signal_current) & (adx_current > 30) & (di_plus_current > di_minus_current) & (macd_current > 0):
         place_entry_order(current_balances)
+        logging.info('Entry order placed')
     else:
-        print('Entry conditions not met.')
+        logging.info('Entry conditions not met. Waiting to enter.')
         pass
 
 def exit_logic(current_indicators, current_balances):
@@ -125,16 +133,25 @@ def exit_logic(current_indicators, current_balances):
     # Calculate exit logic:
     if macd_current <= 0:
         place_exit_order(current_balances)
+        logging.info('Exit order placed.')
     else:
-        print('Exit conditons not met. Holding position.')
+        logging.info('Exit conditons not met. Holding position.')
         pass
 
 def place_entry_order(current_balances):
     cash_on_hand = current_balances['cash_on_hand']
-    order = r.order_buy_crypto_by_price(crypto_symbol, cash_on_hand, timeInForce='ioc')
+    order = r.order_buy_crypto_by_price(crypto_symbol, cash_on_hand)
     print(order)
 
 def place_exit_order(current_balances):
     crypto_to_sell = current_balances['crypto_to_sell']
-    order = r.order_sell_crypto_by_quantity(crypto_symbol, crypto_to_sell, timeInForce='ioc')
+    order = r.order_sell_crypto_by_quantity(crypto_symbol, crypto_to_sell)
     print(order)
+
+if __name__ == '__main__':
+    # main()
+    logging.info('Starting script...')
+    schedule.every(30).minutes.do(main)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
