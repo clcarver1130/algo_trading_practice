@@ -23,8 +23,16 @@ df = load_sqlite_data(sql, DB_NAME)
 
 app = dash.Dash(__name__)
 
+candle_fig = go.Figure(data=[go.Candlestick(x=df['time_period_start'],
+                open=df['price_open'],
+                high=df['price_high'],
+                low=df['price_low'],
+                close=df['price_close'])
+
+
 app.layout = html.Div([
                         html.H1('Ethereum Trading Bot'),
+
                         dcc.Graph(
                             figure = {
                                 'data': [
@@ -40,12 +48,13 @@ app.layout = html.Div([
                                                 )
                                         ],
                                  'layout' : go.Layout(
-                                    xaxis={'title': 'Time'},
+                                    xaxis={'title': 'Time (Zulu)'},
                                     yaxis={'title': 'MACD'},
                                     margin={'l': 50, 'b':50, 't': 10, 'r': 50},
                                             )
                                     },
                             )
+                        dcc.Graph(figure=candle_fig)
                         ])
 
 if __name__ == '__main__':
