@@ -53,7 +53,7 @@ app.layout = html.Div([
                                     margin={'l': 50, 'b':50, 't': 10, 'r': 50},
                                             )
                                     },
-                            )
+                            ),
                         dcc.Graph(figure=candle_fig)
                         ])
 
