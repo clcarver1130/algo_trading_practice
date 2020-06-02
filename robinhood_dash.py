@@ -23,16 +23,17 @@ df = load_sqlite_data(sql, DB_NAME)
 
 app = dash.Dash(__name__)
 
+candle_fig = go.Figure(data=[go.Candlestick(x=df['time_period_start'],
+                open=df['price_open'],
+                high=df['price_high'],
+                low=df['price_low'],
+                close=df['price_close'])])
+
 app.layout = html.Div([
                         # Title
                         html.H1('Ethereum Trading Bot'),
 
                         # Candlestick Chart:
-                        candle_fig = go.Figure(data=[go.Candlestick(x=df['time_period_start'],
-                                        open=df['price_open'],
-                                        high=df['price_high'],
-                                        low=df['price_low'],
-                                        close=df['price_close'])])
                         dcc.Graph(figure=candle_fig)
 
                         # MACD Chart:
