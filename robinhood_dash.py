@@ -32,6 +32,11 @@ app.layout = html.Div([
                                     x = pd.to_datetime(df['time_period_start']),
                                     y = df['macd_current'],
                                     mode = 'lines+markers'
+                                                ),
+                                    go.Scatter(
+                                    x = pd.to_datetime(df['time_period_start']),
+                                    y = df['macd_signal_current'],
+                                    mode = 'lines+markers'
                                                 )
                                         ],
                                  'layout' : go.Layout(
@@ -39,7 +44,8 @@ app.layout = html.Div([
                                     yaxis={'title': 'MACD'},
                                     margin={'l': 50, 'b':50, 't': 10, 'r': 50},
                                             )
-                                    })
+                                    },
+                            )
                         ])
 
 if __name__ == '__main__':
