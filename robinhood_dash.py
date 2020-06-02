@@ -34,7 +34,7 @@ app.layout = html.Div([
                         html.H1('Ethereum Trading Bot'),
 
                         # Candlestick Chart:
-                        dcc.Graph(figure=candle_fig)
+                        dcc.Graph(figure=candle_fig),
 
                         # MACD Chart:
                         dcc.Graph(
