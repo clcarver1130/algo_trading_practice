@@ -4,6 +4,7 @@ import schedule
 import time
 import datetime
 from logger import logging
+import sqlite3
 from talib import MACD, ADX, MINUS_DI, PLUS_DI
 from coinapi_rest_v1 import CoinAPIv1
 from robin_helperfunctions import round_to_hour
@@ -23,6 +24,7 @@ crypto_symbol = 'ETH'
 symbol_id = 'KRAKEN_SPOT_ETH_USD'
 aggregation = '30MIN'
 hours_of_data = 30
+DB_NAME = 'crypto_trading'
 
 
 def main():
@@ -46,7 +48,13 @@ def main():
     else:
         entry_logic(current_indicators, current_balances)
 
-    logging.info('Current check complete.')
+    # Log information:
+    logging.info('Logging current indicators...')
+    history_dict = df_historical.tail(1).reset_index().to_dict('records')[0]
+    current_log = {**history_dict, **current_indicators, **current_balances}
+    log_info_sqlite(current_log, DB_NAME)
+
+    logging.info('Script complete.')
 
 def get_historical_data(symbol, agg, time_window):
     try:
@@ -61,8 +69,6 @@ def calculate_indicators(df):
 
     # Build dictionary:
     indicator_dict = dict()
-
-    indicator_dict['current_period_time'] = df.index[-1]
 
     # MACD
     fast = 12
@@ -147,9 +153,19 @@ def place_entry_order(current_balances, priceType='ask_price'):
     print(order)
 
 def place_exit_order(current_balances, priceType='bid_price'):
-    crypto_to_sell = current_balances['crypto_to_sell']
+    crypto_to_sell = round(current_balances['crypto_to_sell'], 4)
     order = r.orders.order_sell_crypto_by_quantity(crypto_symbol, quantity=crypto_to_sell)
     print(order)
+
+def log_info_sqlite(current_log, DB_NAME):
+
+    conn = sqlite3.connect(DB_NAME)
+    curs = conn.cursor()
+    columns = ', '.join(current_log.keys())
+    placeholders = ':'+', :'.join(current_log.keys())
+    sql = 'INSERT INTO history_log ({}) VALUES ({})'.format(columns, placeholders)
+    curs.execute(sql, current_log)
+    conn.commit()
 
 if __name__ == '__main__':
     main()

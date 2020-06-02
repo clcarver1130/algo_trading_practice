@@ -1,0 +1,1 @@
+CREATE TABLE history_log (time_period_start text, time_period_end text, time_open text, time_close text, price_open real, price_high real, price_low real, price_close real, volume_traded real, trades_count real, macd_current real, macd_signal_current real, adx_current real, di_plus_current real, di_minus_current real, cash_on_hand real, crypto_to_sell real, open_position text);
