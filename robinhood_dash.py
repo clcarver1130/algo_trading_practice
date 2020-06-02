@@ -27,7 +27,7 @@ candle_fig = go.Figure(data=[go.Candlestick(x=df['time_period_start'],
                 open=df['price_open'],
                 high=df['price_high'],
                 low=df['price_low'],
-                close=df['price_close'])
+                close=df['price_close'])])
 
 
 app.layout = html.Div([
