@@ -157,15 +157,15 @@ def place_exit_order(current_balances, priceType='bid_price'):
     order = r.orders.order_sell_crypto_by_quantity(crypto_symbol, quantity=crypto_to_sell)
     print(order)
 
-def log_info_sqlite(log_dict, DB_NAME):
+def log_info_sqlite(current_log, DB_NAME):
 
     conn = sqlite3.connect(DB_NAME)
     curs = conn.cursor()
-    columns = ', '.join(log_dict.keys())
-    placeholders = ', '.join('?' * len(log_dict))
-    sql = 'INSERT INTO history_log ({}) VALUES ({});'.format(columns, placeholders)
-    sql
-    curs.execute(sql, log_dict.values())
+    columns = ', '.join(current_log.keys())
+    placeholders = ':'+', :'.join(current_log.keys())
+    sql = 'INSERT INTO history_log ({}) VALUES ({})'.format(columns, placeholders)
+    curs.execute(sql, current_log)
+    conn.commit()
 
 if __name__ == '__main__':
     # main()
