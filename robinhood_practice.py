@@ -139,7 +139,7 @@ def exit_logic(current_indicators, current_balances):
         pass
 
 def place_entry_order(current_balances):
-    cash_on_hand = current_balances['cash_on_hand']
+    cash_on_hand = str(round(float(current_balances['cash_on_hand']), 2))
     order = r.order_buy_crypto_by_price(crypto_symbol, cash_on_hand)
     print(order)
 
