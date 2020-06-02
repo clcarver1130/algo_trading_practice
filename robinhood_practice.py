@@ -107,7 +107,7 @@ def calculate_balances():
 
 
     # Save to a dictionary and return:
-    current_balances = {'cash_on_hand':cash_on_hand, 'crypto_to_sell':crypto_to_sell, 'open_position': open_position}
+    current_balances = {'cash_on_hand':float(cash_on_hand), 'crypto_to_sell':float(crypto_to_sell), 'open_position': open_position}
 
     return current_balances
 
@@ -138,20 +138,23 @@ def exit_logic(current_indicators, current_balances):
         logging.info('Exit conditons not met. Holding position.')
         pass
 
-def place_entry_order(current_balances):
-    cash_on_hand = float(int(current_balances['cash_on_hand']))
-    order = r.order_buy_crypto_by_price(crypto_symbol, cash_on_hand)
+def place_entry_order(current_balances, priceType='ask_price'):
+    cash_on_hand = current_balances['cash_on_hand']
+    crypto_info = r.crypto.get_crypto_info(crypto_symbol)
+    price = r.helper.round_price(r.crypto.get_crypto_quote_from_id(crypto_info['id'], info=priceType))
+    shares = round(cash_on_hand/price, 4)
+    order = r.orders.order_buy_crypto_by_quantity(crypto_symbol, shares, priceType=priceType)
     print(order)
 
-def place_exit_order(current_balances):
-    crypto_to_sell = float(current_balances['crypto_to_sell'])
-    order = r.order_sell_crypto_by_quantity(crypto_symbol, crypto_to_sell)
+def place_exit_order(current_balances, priceType='bid_price'):
+    crypto_to_sell = round(current_balances['crypto_to_sell'], 4)
+    order = r.orders.order_sell_crypto_by_quantity(crypto_symbol, quantity=crypto_to_sell)
     print(order)
-
+    
 if __name__ == '__main__':
     # main()
     logging.info('Starting script...')
-    schedule.every(30).minutes.do(main)
+    schedule.every(29).minutes.do(main)
     while True:
         schedule.run_pending()
         time.sleep(1)
