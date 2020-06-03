@@ -37,6 +37,8 @@ def load_layout():
                 # Title
                 html.H1('Ethereum Trading Bot'),
 
+                html.H2('Last refresh was: ' + str(datetime.datetime.now())),
+
                 # Candlestick Chart:
                 dcc.Graph(figure=candle_fig),
 
