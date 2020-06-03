@@ -35,10 +35,17 @@ def load_layout():
                     low=df['price_low'],
                     close=df['price_close'])])
 
+    markdown_text = '''
+    # ETH Trading Bot Dashboard
+    #####Last refresh was: {}
+    ___
+    '''.format(str(datetime.datetime.now()))
+
     return html.Div([
                 # Title
-                html.H1('Ethereum Trading Bot'),
-                html.H6('Last refresh was: ' + str(datetime.datetime.now())),
+                html.Div([dcc.Markdown(children=markdown_text)]),
+                # html.H1('Ethereum Trading Bot'),
+                # html.H6('Last refresh was: ' + str(datetime.datetime.now())),
 
                 # Candlestick Chart:
                 html.Div([
