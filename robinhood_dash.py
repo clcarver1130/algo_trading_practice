@@ -75,7 +75,6 @@ def load_layout():
                                             )
                                     ],
                              'layout' : go.Layout(
-                                xaxis={'title': 'Time (Zulu)'},
                                 yaxis={'title': 'MACD'},
                                 margin={'l': 50, 'b':50, 't': 10, 'r': 50},
                                         )
@@ -112,7 +111,6 @@ def load_layout():
                                             )
                                     ],
                              'layout' : go.Layout(
-                                xaxis={'title': 'Time (Zulu)'},
                                 yaxis={'title': 'ADX and DI'},
                                 margin={'l': 50, 'b':50, 't': 10, 'r': 50},
                                         )
