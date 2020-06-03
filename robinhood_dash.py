@@ -7,6 +7,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 ### Constants
 DB_NAME = 'crypto_trading'
@@ -23,7 +24,7 @@ def load_sqlite_data(sql, DB_NAME):
 
 ### Build the Web App:
 
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 def load_layout():
     df = load_sqlite_data(sql, DB_NAME)
@@ -37,12 +38,12 @@ def load_layout():
     return html.Div([
                 # Title
                 html.H1('Ethereum Trading Bot'),
-
-                html.H4('Last refresh was: ' + str(datetime.datetime.now())),
+                html.H5('Last refresh was: ' + str(datetime.datetime.now())),
 
                 # Candlestick Chart:
                 dcc.Graph(figure=candle_fig),
 
+                html.Title('Moving Average Convergence-Divergence (MACD)'),
                 # MACD Chart:
                 dcc.Graph(
                     figure = {
