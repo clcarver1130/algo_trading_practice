@@ -18,6 +18,8 @@ sql = '''SELECT * FROM history_log;'''
 def load_sqlite_data(sql, DB_NAME):
     conn = sqlite3.connect(DB_NAME)
     df = pd.read_sql(sql, conn)
+    # Convert to central time:
+    df['time_period_start'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
     return df
 
 ### Build the Web App:
