@@ -87,7 +87,7 @@ def load_layout():
                             'data': [
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
-                                y = df['ADX_current'],
+                                y = df['adx_current'],
                                 mode = 'lines+markers',
                                 name='ADX (12)'
                                             ),
