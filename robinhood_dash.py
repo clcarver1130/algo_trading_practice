@@ -41,10 +41,11 @@ def load_layout():
                 html.H5('Last refresh was: ' + str(datetime.datetime.now())),
 
                 # Candlestick Chart:
+                html.H5('ETH Price Chart:')
                 dcc.Graph(figure=candle_fig),
 
                 html.Div([
-                    html.Title('Moving Average Convergence-Divergence (MACD)'),
+                    html.H5('Moving Average Convergence-Divergence (MACD):'),
                     # MACD Chart:
                     dcc.Graph(
                         figure = {
