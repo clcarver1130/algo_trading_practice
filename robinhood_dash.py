@@ -41,7 +41,7 @@ def load_layout():
                 html.H5('Last refresh was: ' + str(datetime.datetime.now())),
 
                 # Candlestick Chart:
-                html.H5('ETH Price Chart:')
+                html.H5('ETH Price Chart:'),
                 dcc.Graph(figure=candle_fig),
 
                 html.Div([
