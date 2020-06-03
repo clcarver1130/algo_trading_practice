@@ -4,6 +4,7 @@ import sqlite3
 import datetime
 
 import dash
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
@@ -18,8 +19,12 @@ sql = '''SELECT * FROM history_log;'''
 def load_sqlite_data(sql, DB_NAME):
     conn = sqlite3.connect(DB_NAME)
     df = pd.read_sql(sql, conn)
+    df.head()
     # Convert to central time:
     df['time_period_start'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
+    df['time_period_end'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
+    df['time_open'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
+    df['time_close'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
     return df
 
 ### Build the Web App:
@@ -116,7 +121,12 @@ def load_layout():
                                         )
                                 }
                             )
-                        ])
+                        ]),
+                dash_table.DataTable(
+                            id='table',
+                            columns=[{"name": i, "id": i} for i in df.columns],
+                            data=df.to_dict('records')
+                )
                     ]) # Overall divider
 
 app.layout = load_layout
