@@ -122,11 +122,14 @@ def load_layout():
                                 }
                             )
                         ]),
-                dash_table.DataTable(
+                html.Div([
+                    html.H5('Raw Data:'),
+                    dash_table.DataTable(
                             id='table',
                             columns=[{"name": i, "id": i} for i in df.columns],
                             data=df.to_dict('records')
-                )
+                                        )
+                        ])
                     ]) # Overall divider
 
 app.layout = load_layout
