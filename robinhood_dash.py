@@ -20,8 +20,6 @@ def load_sqlite_data(sql, DB_NAME):
     df = pd.read_sql(sql, conn)
     return df
 
-
-
 ### Build the Web App:
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -37,7 +35,7 @@ def load_layout():
 
     markdown_text = '''
     # ETH Trading Bot Dashboard
-    ##### Last refresh was: {}
+    Last refresh was: {}
     ___
     '''.format(str(datetime.datetime.now()))
 
@@ -81,7 +79,39 @@ def load_layout():
                             )
                         ]) # Line Plots
 
-
+                html.Div([
+                    html.H5('ADX and Directional Indicator (ADX and DI):'),
+                    # MACD Chart:
+                    dcc.Graph(
+                        figure = {
+                            'data': [
+                                go.Scatter(
+                                x = pd.to_datetime(df['time_period_start']),
+                                y = df['ADX_current'],
+                                mode = 'lines+markers',
+                                name='ADX (12)'
+                                            ),
+                                go.Scatter(
+                                x = pd.to_datetime(df['time_period_start']),
+                                y = df['di_plus_current'],
+                                mode = 'lines+markers',
+                                name = 'DI Plus (12)'
+                                            ),
+                                go.Scatter(
+                                x = pd.to_datetime(df['time_period_start']),
+                                y = df['di_minus_current'],
+                                mode = 'lines+markers',
+                                name = 'DI Minus (12)'
+                                            ),
+                                    ],
+                             'layout' : go.Layout(
+                                xaxis={'title': 'Time (Zulu)'},
+                                yaxis={'title': 'ADX and DI'},
+                                margin={'l': 50, 'b':50, 't': 10, 'r': 50},
+                                        )
+                                },
+                            )
+                        ])
                     ]) # Overall divider
 
 app.layout = load_layout

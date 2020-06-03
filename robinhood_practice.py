@@ -79,12 +79,12 @@ def calculate_indicators(df):
     indicator_dict['macd_signal_current'] = macdsignal[-1]
 
     # ADX
-    time_period = 14
+    time_period = 12
     adx = ADX(df['price_high'], df['price_low'], df['price_close'], time_period)
     indicator_dict['adx_current'] = adx[-1]
 
     # DI+/DI-
-    time_period = 14
+    time_period = 12
     di_plus = PLUS_DI(df['price_high'], df['price_low'], df['price_close'], time_period)
     di_minus = MINUS_DI(df['price_high'], df['price_low'], df['price_close'], time_period)
     indicator_dict['di_plus_current'] = di_plus[-1]
