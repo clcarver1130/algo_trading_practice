@@ -43,32 +43,34 @@ def load_layout():
                 # Candlestick Chart:
                 dcc.Graph(figure=candle_fig),
 
-                html.Title('Moving Average Convergence-Divergence (MACD)'),
-                # MACD Chart:
-                dcc.Graph(
-                    figure = {
-                        'data': [
-                            go.Scatter(
-                            x = pd.to_datetime(df['time_period_start']),
-                            y = df['macd_current'],
-                            mode = 'lines+markers',
-                            name='MACD (12, 26)'
-                                        ),
-                            go.Scatter(
-                            x = pd.to_datetime(df['time_period_start']),
-                            y = df['macd_signal_current'],
-                            mode = 'lines+markers',
-                            name = 'MACD Signal (9)'
+                html.Div([
+                    html.Title('Moving Average Convergence-Divergence (MACD)'),
+                    # MACD Chart:
+                    dcc.Graph(
+                        figure = {
+                            'data': [
+                                go.Scatter(
+                                x = pd.to_datetime(df['time_period_start']),
+                                y = df['macd_current'],
+                                mode = 'lines+markers',
+                                name='MACD (12, 26)'
+                                            ),
+                                go.Scatter(
+                                x = pd.to_datetime(df['time_period_start']),
+                                y = df['macd_signal_current'],
+                                mode = 'lines+markers',
+                                name = 'MACD Signal (9)'
+                                            )
+                                    ],
+                             'layout' : go.Layout(
+                                xaxis={'title': 'Time (Zulu)'},
+                                yaxis={'title': 'MACD'},
+                                margin={'l': 50, 'b':50, 't': 10, 'r': 50},
                                         )
-                                ],
-                         'layout' : go.Layout(
-                            xaxis={'title': 'Time (Zulu)'},
-                            yaxis={'title': 'MACD'},
-                            margin={'l': 50, 'b':50, 't': 10, 'r': 50},
-                                    )
-                            },
-                        )
-                ])
+                                },
+                            )
+                        ])
+                    ])
 
 app.layout = load_layout
 
