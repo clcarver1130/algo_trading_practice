@@ -37,7 +37,7 @@ def load_layout():
 
     markdown_text = '''
     # ETH Trading Bot Dashboard
-    #####Last refresh was: {}
+    ##### Last refresh was: {}
     ___
     '''.format(str(datetime.datetime.now()))
 
