@@ -38,7 +38,7 @@ def load_layout():
                 # Title
                 html.H1('Ethereum Trading Bot'),
 
-                html.H2('Last refresh was: ' + str(datetime.datetime.now())),
+                html.H4('Last refresh was: ' + str(datetime.datetime.now())),
 
                 # Candlestick Chart:
                 dcc.Graph(figure=candle_fig),
@@ -50,12 +50,14 @@ def load_layout():
                             go.Scatter(
                             x = pd.to_datetime(df['time_period_start']),
                             y = df['macd_current'],
-                            mode = 'lines+markers'
+                            mode = 'lines+markers',
+                            name='MACD (12, 26)'
                                         ),
                             go.Scatter(
                             x = pd.to_datetime(df['time_period_start']),
                             y = df['macd_signal_current'],
-                            mode = 'lines+markers'
+                            mode = 'lines+markers',
+                            name = 'MACD Signal (9)'
                                         )
                                 ],
                          'layout' : go.Layout(
