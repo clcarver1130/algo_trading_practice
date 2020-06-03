@@ -77,7 +77,7 @@ def load_layout():
                                         )
                                 },
                             )
-                        ]) # Line Plots
+                        ]),
 
                 html.Div([
                     html.H5('ADX and Directional Indicator (ADX and DI):'),
