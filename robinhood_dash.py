@@ -61,13 +61,15 @@ def load_layout():
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['macd_current'],
                                 mode = 'lines',
-                                name='MACD (12, 26)'
+                                name='MACD (12, 26)',
+                                line=dict(color='purple', width=2)
                                             ),
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['macd_signal_current'],
                                 mode = 'lines',
-                                name = 'MACD Signal (9)'
+                                name = 'MACD Signal (9)',
+                                line=dict(color='grey', width=2, dash='dash')
                                             )
                                     ],
                              'layout' : go.Layout(
@@ -90,19 +92,21 @@ def load_layout():
                                 y = df['adx_current'],
                                 mode = 'lines',
                                 name='ADX (12)',
-                                line=dict(color='grey', width=4, dash='dash')
+                                line=dict(color='grey', width=2, dash='dash')
                                             ),
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['di_plus_current'],
                                 mode = 'lines',
-                                name = 'DI Plus (12)'
+                                name = 'DI Plus (12)',
+                                line=dict(color='green', width=2)
                                             ),
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['di_minus_current'],
                                 mode = 'lines',
-                                name = 'DI Minus (12)'
+                                name = 'DI Minus (12)',
+                                line=dict(color='red', width=2)
                                             ),
                                     ],
                              'layout' : go.Layout(
