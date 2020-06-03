@@ -38,11 +38,13 @@ def load_layout():
     return html.Div([
                 # Title
                 html.H1('Ethereum Trading Bot'),
-                html.H5('Last refresh was: ' + str(datetime.datetime.now())),
+                html.H6('Last refresh was: ' + str(datetime.datetime.now())),
 
                 # Candlestick Chart:
+                html.Div([
                 html.H5('ETH Price Chart:'),
                 dcc.Graph(figure=candle_fig),
+                        ]),
 
                 html.Div([
                     html.H5('Moving Average Convergence-Divergence (MACD):'),
@@ -70,8 +72,10 @@ def load_layout():
                                         )
                                 },
                             )
-                        ])
-                    ])
+                        ]) # Line Plots
+
+
+                    ]) # Overall divider
 
 app.layout = load_layout
 
