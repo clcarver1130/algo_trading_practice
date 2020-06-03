@@ -107,24 +107,13 @@ def load_layout():
                                 mode = 'lines',
                                 name = 'DI Minus (12)',
                                 line=dict(color='red', width=2)
-                                            ),
+                                            )
                                     ],
                              'layout' : go.Layout(
                                 xaxis={'title': 'Time (Zulu)'},
                                 yaxis={'title': 'ADX and DI'},
                                 margin={'l': 50, 'b':50, 't': 10, 'r': 50},
-                                        ),
-                             'shapes' : dict(type="line",
-                                                x0=0,
-                                                y0=2,
-                                                x1=5,
-                                                y1=2,
-                                                line=dict(
-                                                    color="grey",
-                                                    width=1,
-                                                    dash="dashdot",
-                                        ))
-
+                                        )
                                 }
                             )
                         ])
