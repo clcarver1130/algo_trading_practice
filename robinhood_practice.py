@@ -170,7 +170,7 @@ def log_info_sqlite(current_log, DB_NAME):
 if __name__ == '__main__':
     # main()
     logging.info('Starting script...')
-    schedule.every(29).minutes.do(main)
+    schedule.every(30).minutes.do(main)
     while True:
         schedule.run_pending()
         time.sleep(1)

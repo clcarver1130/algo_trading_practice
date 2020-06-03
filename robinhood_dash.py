@@ -60,13 +60,13 @@ def load_layout():
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['macd_current'],
-                                mode = 'lines+markers',
+                                mode = 'lines',
                                 name='MACD (12, 26)'
                                             ),
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['macd_signal_current'],
-                                mode = 'lines+markers',
+                                mode = 'lines',
                                 name = 'MACD Signal (9)'
                                             )
                                     ],
@@ -88,19 +88,20 @@ def load_layout():
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['adx_current'],
-                                mode = 'lines+markers',
-                                name='ADX (12)'
+                                mode = 'lines',
+                                name='ADX (12)',
+                                color='Purple'
                                             ),
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['di_plus_current'],
-                                mode = 'lines+markers',
+                                mode = 'lines',
                                 name = 'DI Plus (12)'
                                             ),
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
                                 y = df['di_minus_current'],
-                                mode = 'lines+markers',
+                                mode = 'lines',
                                 name = 'DI Minus (12)'
                                             ),
                                     ],
