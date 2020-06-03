@@ -92,7 +92,7 @@ def load_layout():
                                 y = df['adx_current'],
                                 mode = 'lines',
                                 name='ADX (12)',
-                                line=dict(color='grey', width=2, dash='dash')
+                                line=dict(color='black', width=2, dash='dash')
                                             ),
                                 go.Scatter(
                                 x = pd.to_datetime(df['time_period_start']),
@@ -113,8 +113,19 @@ def load_layout():
                                 xaxis={'title': 'Time (Zulu)'},
                                 yaxis={'title': 'ADX and DI'},
                                 margin={'l': 50, 'b':50, 't': 10, 'r': 50},
-                                        )
-                                },
+                                        ),
+                             'shapes' : dict(type="line",
+                                                x0=0,
+                                                y0=2,
+                                                x1=5,
+                                                y1=2,
+                                                line=dict(
+                                                    color="grey",
+                                                    width=1,
+                                                    dash="dashdot",
+                                        ))
+
+                                }
                             )
                         ])
                     ]) # Overall divider
