@@ -22,9 +22,9 @@ def load_sqlite_data(sql, DB_NAME):
     df.head()
     # Convert to central time:
     df['time_period_start'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
-    df['time_period_end'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
-    df['time_open'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
-    df['time_close'] = pd.to_datetime(df['time_period_start']).dt.tz_convert('US/Central')
+    df['time_period_end'] = pd.to_datetime(df['time_period_end']).dt.tz_convert('US/Central')
+    df['time_open'] = pd.to_datetime(df['time_open']).dt.tz_convert('US/Central')
+    df['time_close'] = pd.to_datetime(df['time_close']).dt.tz_convert('US/Central')
     return df
 
 ### Build the Web App:
