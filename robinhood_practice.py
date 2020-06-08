@@ -144,7 +144,7 @@ def exit_logic(current_indicators, current_balances):
         logging.info('Exit conditons not met. Holding position.')
         pass
 
-def place_entry_order(current_balances, priceType='ask_price'):
+def place_entry_order(current_balances, priceType='mark_price'):
     cash_on_hand = current_balances['cash_on_hand']
     crypto_info = r.crypto.get_crypto_info(crypto_symbol)
     price = r.helper.round_price(r.crypto.get_crypto_quote_from_id(crypto_info['id'], info=priceType))
@@ -152,9 +152,9 @@ def place_entry_order(current_balances, priceType='ask_price'):
     order = r.orders.order_buy_crypto_by_quantity(crypto_symbol, shares, priceType=priceType)
     print(order)
 
-def place_exit_order(current_balances, priceType='bid_price'):
+def place_exit_order(current_balances, priceType='mark_price'):
     crypto_to_sell = round(current_balances['crypto_to_sell'], 4)
-    order = r.orders.order_sell_crypto_by_quantity(crypto_symbol, quantity=crypto_to_sell)
+    order = r.orders.order_sell_crypto_by_quantity(crypto_symbol, quantity=crypto_to_sell, priceType=priceType)
     print(order)
 
 def log_info_sqlite(current_log, DB_NAME):
