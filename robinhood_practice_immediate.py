@@ -13,7 +13,6 @@ from robin_helperfunctions import round_to_hour
 ### Robinhood specific libraries and login
 import robin_stocks as r
 from logins import robin_email, robin_password
-login = r.login(robin_email, robin_password)
 
 ### CoinAPI login
 from logins import CoinAPI_KEY
@@ -28,40 +27,65 @@ DB_NAME = 'crypto_trading'
 
 
 def main():
-
-    now = str(pd.Timestamp.today())[0:16]
-    logging.info('Calculating metrics for {now}...'.format(now=now))
+    # Login:
+    try:
+        login = r.login(robin_email, robin_password)
+    except:
+        logging.info('Login Issue.')
+        print(login)
+        return
 
     # Pull data:
-    data_since = round_to_hour(pd.Timestamp.today() - datetime.timedelta(hours=hours_of_data)).isoformat()
-    df_historical = get_historical_data(symbol_id, aggregation, data_since)
+    try:
+        now = str(pd.Timestamp.today())[0:16]
+        logging.info('Calculating metrics for {now}...'.format(now=now))
+        data_since = round_to_hour(pd.Timestamp.today() - datetime.timedelta(hours=hours_of_data)).isoformat()
+        df_historical = get_historical_data(symbol_id, aggregation, data_since)
+    except:
+        logging.info('Data Request Issue.')
+        return
 
     # Calculate indicators:
-    current_indicators = calculate_indicators(df_historical)
+    try:
+        current_indicators = calculate_indicators(df_historical)
+    except:
+        logging.info('Indicator calculation issue.')
+        return
 
     # Calcualte current holdings:
-    current_balances =  calculate_balances()
+    try:
+        current_balances =  calculate_balances()
+    except:
+        logging.info('Issue Looking Up Current Balances.')
+        return
+
+    # Log information:
+    try:
+        logging.info('Logging current indicators...')
+        history_dict = df_historical.tail(1).reset_index().to_dict('records')[0]
+        current_log = {**history_dict, **current_indicators, **current_balances}
+        log_info_sqlite(current_log, DB_NAME)
+    except:
+        logging.info('Issue Logging Data.')
+        return
 
     # Entry/Exit Logic:
     if current_balances['open_position']:
-        exit_logic(current_indicators, current_balances)
+        try:
+            exit_logic(current_indicators, current_balances)
+        except:
+            logging.info('Issue with Exit Order')
+            return
     else:
-        entry_logic(current_indicators, current_balances)
-
-    # Log information:
-    logging.info('Logging current indicators...')
-    history_dict = df_historical.tail(1).reset_index().to_dict('records')[0]
-    current_log = {**history_dict, **current_indicators, **current_balances}
-    log_info_sqlite(current_log, DB_NAME)
-
-    logging.info('Script complete.')
+        try:
+            entry_logic(current_indicators, current_balances)
+        except:
+            logging.info('Issue with Entry Order.')
+            return
 
 def get_historical_data(symbol, agg, time_window):
-    try:
-        df = pd.DataFrame(coin_api.ohlcv_historical_data(symbol, {'period_id':agg, 'time_start':time_window})).set_index('time_period_start')
-        return df
-    except:
-        logging.info('Data Request Error.')
+    df = pd.DataFrame(coin_api.ohlcv_historical_data(symbol, {'period_id':agg, 'time_start':time_window})).set_index('time_period_start')
+    return df
 
 def calculate_indicators(df):
 
@@ -100,12 +124,12 @@ def calculate_balances():
     try:
         cash_on_hand = r.load_account_profile()['crypto_buying_power']
     except:
-        logging.info('No cash on hand.')
+        logging.info('Issue determining buying power')
 
     try:
         crypto_to_sell = float(r.get_crypto_positions()[0]['quantity_available'])
     except:
-        logging.info('No crypto on hand.')
+        logging.info('Problem determining {} amount on hand'.format(crypto_symbol))
 
     # Calculate an open_position flag:
     open_position = True if crypto_to_sell > 0 else False
@@ -169,3 +193,4 @@ def log_info_sqlite(current_log, DB_NAME):
 
 if __name__ == '__main__':
     main()
+    logging.info('Script complete.')
