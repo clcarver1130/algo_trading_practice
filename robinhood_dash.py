@@ -85,7 +85,7 @@ def load_layout():
                                         )
                                 },
                             )
-                        ]),
+                        ], className='column six' ),
 
                 html.Div([
                     html.H5('ADX and Directional Indicator (ADX and DI):'),
@@ -121,7 +121,7 @@ def load_layout():
                                         )
                                 }
                             )
-                        ]),
+                        ], className='column six'),
                 html.Div([
                     html.H5('Raw Data:'),
                     dash_table.DataTable(
@@ -130,7 +130,7 @@ def load_layout():
                             data=df.to_dict('records')
                                         )
                         ])
-                    ]) # Overall divider
+                    ], className='container') # Overall divider
 
 app.layout = load_layout
 
