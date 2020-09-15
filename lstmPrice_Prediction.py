@@ -12,7 +12,6 @@ class PricePrediction:
         self.raw_data = None
         self.n_input = None
         self.n_out = None
-        self
         
     def load_dataframe(self,df):
         self.raw_data = df
@@ -45,13 +44,38 @@ class PricePrediction:
             in_start += 1
         return np.array(X), np.array(y).reshape(-1)
     
+    def to_supervised_classification(self, df, n_input, n_out, _priceCol=3):
+        data = np.array(df)
+        
+        self.n_input = n_input
+        self.n_out = n_out        
+        
+        X = list()
+        in_start = 0
+        for _ in range(len(data)):
+            # define the end of the input sequence
+            in_end = in_start + n_input
+            out_end = in_end + n_out
+            # ensure we have enough data for this instance 
+            if out_end <= len(data):
+                X.append(data[in_start:in_end, :])
+            # move along one time step
+            in_start += 1
+        return np.array(X)
+    
     def normalize_inputs(self, X, y):
         
         x_norm = np.array([x/x[0]-1 for x in X])
         y_norm = np.array([y/x[0][3]-1 for x,y in zip(X, y)])
-        return x_norm, y_norm
+        return x_norm
+
+    def normalize_x_only(self, X):
+        x_norm = np.array([x/x[0]-1 for x in X])
+        return x_norm
     
-    denormalize_outputs(self, b)
+    def denormalize_outputs(self, b):
+        
+        pass
         
         
 
