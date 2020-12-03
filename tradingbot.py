@@ -57,7 +57,7 @@ class Kraken_Trading_Bot:
             dataframe with OHLCV information
         """
 
-        self.api = self.connect_account(kraken_key_filepath)
+        self.api, self.con = self.connect_account(kraken_key_filepath)
         self.currency = currency
         self.crypto = crypto
         self.interval = interval
@@ -66,7 +66,7 @@ class Kraken_Trading_Bot:
         self.hist_data = self.get_historical_data(self.pair, self.interval)
         self.current_price = self.hist_data.iloc[-1]['close']
         self.cash_on_hand, self.crypto_on_hand, self.open_position = self.calculate_balances()
-        self.affordable_shares = round(self.cash_on_hand/self.current_price, 2)
+        self.affordable_shares = self.cash_on_hand/self.current_price
 
     def connect_account(self, kraken_key_filepath):
 
@@ -88,7 +88,7 @@ class Kraken_Trading_Bot:
         con = krakenex.API()
         con.load_key(kraken_key_filepath)
         api = KrakenAPI(con)
-        return api
+        return api, con
 
     def get_historical_data(self, pair:str, interval:int, timezone='US/Central'):
 
@@ -117,13 +117,33 @@ class Kraken_Trading_Bot:
         open_position = self.check_openPosition(crypto_on_hand)
         return cash_on_hand, crypto_on_hand, open_position
 
-    def entry_logic(self, seconds_toCancel=30):
-        buy_order = self.api.add_standard_order(pair=self.pair,
-                                                type='buy',
-                                                ordertype='limit',
-                                                price=self.current_price,
-                                                volume=self.affordable_shares,
-                                                expiretm=f'+{seconds_toCancel}'})
+    def limit_buy_order(self, seconds_toCancel=30):
+
+        '''Create an entry order and a stop loss order to match it'''
+
+        # Place buy order:
+        buy_order = self.con.query_private('AddOrder', {'pair': self.pair,
+                                                        'type': 'buy',
+                                                        'ordertype': 'limit',
+                                                        'price': self.current_price,
+                                                        'volume': self.affordable_shares,
+                                                        'expiretm': f'+{seconds_toCancel}'})
+        # Confirm there are no erros:
+        if len(buy_order['error']) == 0:
+            logging.info(f'Placed order for {self.affordable_shares} shares at {self.current_price}...')
+        # Wait for it to fill or expire:
+        logging.info('Waiting for order to fill...')
+        while len(k.get_open_orders()) > 0:
+            time.sleep(1)
+        finished_order = k.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
+        return buy_order, finished_order
+        # # If it expired, try again:
+        # if finished_order['status'] == 'expired':
+        #     logging.info('Trade timed out. Re-calculating metrics and retrying trade.')
+
+        #
+        else:
+            logging.info(f"Buy order error: {buy_order['error'][0]}")
 
     def exit_logic(self):
         pass

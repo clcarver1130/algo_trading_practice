@@ -15,7 +15,7 @@ def kraken_macdStrategy(hist_data, position_flag):
     FAST, SLOW, SIGNAL = 12, 26, 9
     macd, macdsignal, macdhist = MACD(hist_data['close'], FAST, SLOW, SIGNAL)
     macd_current, signal_current = macd[-1], macdsignal[-1]
-    logging.write(f'MACD is: {macd_current} | Signal is: {signal_current}')
+    logging.info(f'MACD is: {macd_current} | Signal is: {signal_current}')
 
     # Action:
     if position_flag:
@@ -37,7 +37,14 @@ def main():
 
     action = bot.strategy(bot.hist_data, bot.open_position)
     if action == 'buy':
-        bot.entry_logic()
+        placed_order, finished_order = bot.limit_buy_order()
+        while len(k.get_open_orders()) > 0:
+            time.sleep(1)
+        completed_order = k.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
+        if completed_order['status'] == 'expired':
+            logging.info('Trade timed out. Re-calculating metrics and retrying trade.')
+            buy_order
+        bot.stop_loss_order()
     elif action == 'sell'
         bot.exit_logic()
     else:

@@ -13,7 +13,7 @@ api.load_key('kraken_keys.py')
 
 def main():
     logging.info('Starting script...')
-    schedule.every(1).hours.do(entry_exit_logic)
+    schedule.every(4).hours.do(entry_exit_logic)
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -57,13 +57,13 @@ def entry_exit_logic():
         open_position = False
         pass
 
-    # Entry Exit Long 
+    # Entry Exit Long
     if (macd_current > signal_current) & (open_position==False):
         otype = 'buy'
-        buy_order = api.query_private('AddOrder', {'pair': pair, 
-                                               'type': otype, 
-                                               'ordertype':'limit', 
-                                               'price': current_price, 
+        buy_order = api.query_private('AddOrder', {'pair': pair,
+                                               'type': otype,
+                                               'ordertype':'limit',
+                                               'price': current_price,
                                                'volume': shares,
                                                'expiretm': '+30'})
         if len(buy_order['error']) == 0:
@@ -79,21 +79,21 @@ def entry_exit_logic():
         else:
             logging.info('Buy order complete. Placing stop-loss order.')
             stop_loss_amount = 0.01
-            stop_loss_order = api.query_private('AddOrder', {'pair': pair, 
-                                                             'type': 'sell', 
-                                                             'ordertype':'stop-loss', 
+            stop_loss_order = api.query_private('AddOrder', {'pair': pair,
+                                                             'type': 'sell',
+                                                             'ordertype':'stop-loss',
                                                              'price': round(completed_order['price']*(1-stop_loss_amount), 2),
                                                              'volume': completed_order['vol']})
     elif (macd_current <= signal_current) & (open_position==True):
         # Cancel stop loss order:
         stopLoss_id = k.get_open_orders().index[0]
-        k.cancel_open_order(stopLoss_id) 
+        k.cancel_open_order(stopLoss_id)
         # Create sell order:
         otype = 'sell'
-        sell_order = api.query_private('AddOrder', {'pair': pair, 
-                                               'type': otype, 
-                                               'ordertype':'limit', 
-                                               'price': current_price, 
+        sell_order = api.query_private('AddOrder', {'pair': pair,
+                                               'type': otype,
+                                               'ordertype':'limit',
+                                               'price': current_price,
                                                'volume': crypto_on_hand,
                                                'expiretm': '+30'})
         if len(order['error']) == 0:
