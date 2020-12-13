@@ -45,7 +45,7 @@ def main():
             logging.info('Trade timed out. Re-calculating metrics and retrying trade.')
             buy_order
         bot.stop_loss_order()
-    elif action == 'sell'
+    elif action == 'sell':
         bot.exit_logic()
     else:
         pass
