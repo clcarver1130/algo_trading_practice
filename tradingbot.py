@@ -3,8 +3,8 @@ import schedule
 import time
 from logger import logging
 import krakenex
-from pykrakenapi import KrakenAPI
-import talib
+from pykrakenapi import KrakenAPI 
+
 
 
 class Kraken_Trading_Bot:
