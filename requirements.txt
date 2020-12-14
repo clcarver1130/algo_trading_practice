@@ -57,7 +57,7 @@ more-itertools==8.4.0
 nbconvert==5.6.1
 nbformat @ file:///home/conda/feedstock_root/build_artifacts/nbformat_1594060262917/work
 nltk @ file:///tmp/build/80754af9/nltk_1592496090529/work
-notebook==6.0.3
+notebook==6.1.5
 numpy==1.18.5
 oauthlib==3.1.0
 openpyxl @ file:///tmp/build/80754af9/openpyxl_1594167385094/work
