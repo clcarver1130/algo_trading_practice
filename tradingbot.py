@@ -131,19 +131,18 @@ class Kraken_Trading_Bot:
         # Confirm there are no erros:
         if len(buy_order['error']) == 0:
             logging.info(f'Placed order for {self.affordable_shares} shares at {self.current_price}...')
-        # Wait for it to fill or expire:
-        logging.info('Waiting for order to fill...')
-        while len(k.get_open_orders()) > 0:
-            time.sleep(1)
-        finished_order = k.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
-        return buy_order, finished_order
+            # Wait for it to fill or expire:
+            logging.info('Waiting for order to fill...')
+            while len(k.get_open_orders()) > 0:
+                time.sleep(1)
+            finished_order = k.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
+            return buy_order, finished_order
         # # If it expired, try again:
         # if finished_order['status'] == 'expired':
         #     logging.info('Trade timed out. Re-calculating metrics and retrying trade.')
-
-        #
         else:
             logging.info(f"Buy order error: {buy_order['error'][0]}")
+            return
 
     def exit_logic(self):
         pass
