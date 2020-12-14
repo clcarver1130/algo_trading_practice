@@ -2,7 +2,7 @@ import pandas as pd
 import schedule
 import time
 from logger import logging
-from talib import MACD
+# from talib import MACD
 from tradingbot import Kraken_Trading_Bot
 
 FIAT = 'ZUSD'
@@ -13,8 +13,13 @@ def kraken_macdStrategy(hist_data, position_flag):
 
     # MACD calculation:
     FAST, SLOW, SIGNAL = 12, 26, 9
-    macd, macdsignal, macdhist = MACD(hist_data['close'], FAST, SLOW, SIGNAL)
-    macd_current, signal_current = macd[-1], macdsignal[-1]
+    
+    exp1 = hist_data['close'].ewm(span=FAST, adjust=False).mean()
+    exp2 = hist_data['close'].ewm(span=SLOW, adjust=False).mean()
+    macd = exp1-exp2
+    signal = macd.ewm(span=SIGNAL, adjust=False).mean()
+    
+    macd_current, signal_current = macd[-1], signal[-1]
     logging.info(f'MACD is: {macd_current} | Signal is: {signal_current}')
 
     # Action:
