@@ -53,6 +53,7 @@ def main():
     elif action == 'sell':
         bot.exit_logic()
     else:
+        logging.info('Holding position')
         pass
 
 if __name__ == '__main__':
