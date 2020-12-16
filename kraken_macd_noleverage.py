@@ -48,7 +48,7 @@ def main():
             main()
         else:
             logging.info('Buy order complete. Placing stop loss order.')
-            bot.stop_loss_order()
+            bot.stop_loss_order(completed_order)
     elif action == 'sell':
         placed_order, completed_order = bot.exit_logic()
         if completed_order['status'] == 'expired':

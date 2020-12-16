@@ -146,6 +146,18 @@ class Kraken_Trading_Bot:
             logging.info(f"Buy order error: {buy_order['error'][0]}")
             return
 
+    def stop_loss_order(self, completed_order):
+        
+        stop_loss_percent = 0.01
+        stop_loss_price = round(completed_order['price']*(1-stop_loss_percent), 2)
+        stop_loss_order = api.query_private('AddOrder', {'pair': self.pair, 
+                                                         'type': 'sell', 
+                                                         'ordertype':'stop-loss', 
+                                                         'price': stop_loss_price,
+                                                         'volume': completed_order['vol']})
+        logging.info(f'Stop Loss order placed at: {stop_loss_price}')
+        return
+    
     def exit_logic(self, seconds_toCancel=60):
         
         '''Cancel our outstanding stop-loss order and close our open position - hopefully for a large return :)'''
