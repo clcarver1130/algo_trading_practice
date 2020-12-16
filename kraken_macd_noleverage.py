@@ -58,6 +58,7 @@ def main():
 
 if __name__ == '__main__':
     logging.info('Starting script...')
+    schedule.run(main)
     schedule.every(4).hours.do(main)
     while True:
         schedule.run_pending()
