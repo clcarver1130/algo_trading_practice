@@ -139,7 +139,7 @@ class Kraken_Trading_Bot:
             # Wait for it to fill or expire:
             logging.info('Waiting for order to fill...')
             while len(self.api.get_open_orders()) > 0:
-                time.sleep(1)
+                time.sleep(3)
             completed_order = self.api.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
             return buy_order, completed_order
         else:
@@ -181,7 +181,7 @@ class Kraken_Trading_Bot:
             # Wait for it to fill or expire:
             logging.info('Waiting for order to fill...')
             while len(self.api.get_open_orders()) > 0:
-                time.sleep(1)
+                time.sleep(3)
             completed_order = self.api.get_closed_orders()[0].loc[sell_order['result']['txid'][0]]
             return sell_order, completed_order
         else:
