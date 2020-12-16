@@ -173,4 +173,4 @@ class Kraken_Trading_Bot:
             completed_order = self.api.get_closed_orders()[0].loc[sell_order['result']['txid'][0]]
             return sell_order, completed_order
         else:
-            logging.info(f'Sell order error: {sell_order['error'][0]}.')
+            logging.info(f"Sell order error: {sell_order['error'][0]}.")
