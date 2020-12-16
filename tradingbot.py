@@ -66,7 +66,8 @@ class Kraken_Trading_Bot:
         self.hist_data = self.get_historical_data(self.pair, self.interval)
         self.current_price = self.hist_data.iloc[-1]['close']
         self.cash_on_hand, self.crypto_on_hand, self.open_position = self.calculate_balances()
-        self.affordable_shares = self.cash_on_hand/self.current_price
+        self.affordable_shares = 0
+        self.calculate_affordable_shares()
 
     def connect_account(self, kraken_key_filepath):
 
@@ -117,6 +118,11 @@ class Kraken_Trading_Bot:
         open_position = self.check_openPosition(crypto_on_hand)
         return cash_on_hand, crypto_on_hand, open_position
 
+    def calculate_affordable_shares(self):
+        
+        self.affordable_shares = self.cash_on_hand/self.current_price
+        return
+
     def limit_buy_order(self, seconds_toCancel=30):
 
         '''Create an entry order and a stop loss order to match it'''
@@ -145,4 +151,25 @@ class Kraken_Trading_Bot:
             return
 
     def exit_logic(self):
-        pass
+        
+        '''Cancel our outstanding stop-loss order and close our open position - hopefully for a large return :)'''
+        
+        # Cancel stop loss order:
+        try:
+            stopLoss_id = k.get_open_orders().index[0]
+            k.cancel_open_order(stopLoss_id)
+        except:
+            logging.info('No stop loss order to cancel.')
+        
+        # Create sell order:
+        otype = 'sell'
+        sell_order = api.query_private('AddOrder', {'pair': pair,
+                                               'type': otype,
+                                               'ordertype':'limit',
+                                               'price': current_price,
+                                               'volume': crypto_on_hand,
+                                               'expiretm': '+60'})
+        if len(order['error']) == 0:
+            logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
+        else:
+            logging.info('Trade Canceled: {error}'.format(error=order['error']))

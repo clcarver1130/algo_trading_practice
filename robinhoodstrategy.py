@@ -31,6 +31,8 @@ class Trade:
         self.period_count = 0
         self.current_price = None
         self.pct_change = 0
+        self.highest_gain = 0
+        self.max_drawdown = 0
         
     def log_buy(self, time, price):
         self.datetime_buy = time
@@ -46,11 +48,18 @@ class Trade:
                 'buy_price': self.price_buy, 
                 'sell_price':self.price_sell,
                 'pct_change': (self.price_sell-self.price_buy)/self.price_buy,
-                'current_capital': current_capital}        
+                'highest_gain': self.highest_gain,
+                'max_drawdown': self.max_drawdown,
+                'current_capital': current_capital}
+    
     def log_pass(self, current_price):
         self.period_count += 1
         self.current_price = current_price
-        self.pct_change = (self.current_price-self.price_buy)/self.current_price
+        self.pct_change = (self.current_price-self.price_buy)/self.price_buy
+        if self.pct_change > self.highest_gain:
+            self.highest_gain = self.pct_change
+        if self.pct_change < self.max_drawdown:
+            self.max_drawdown = self.pct_change
         
         
     
