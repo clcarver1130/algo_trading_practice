@@ -150,6 +150,7 @@ class Kraken_Trading_Bot:
         
         stop_loss_percent = 0.01
         stop_loss_price = round(completed_order['price']*(1-stop_loss_percent), 2)
+        print(completed_order['vol'])
         stop_loss_order = self.con.query_private('AddOrder', {'pair': self.pair, 
                                                          'type': 'sell', 
                                                          'ordertype':'stop-loss', 
