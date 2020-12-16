@@ -59,6 +59,7 @@ def main():
     else:
         logging.info('Holding position')
         pass
+    logging.info('Check complete.')
 
 if __name__ == '__main__':
     logging.info('Starting script...')

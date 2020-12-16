@@ -149,13 +149,13 @@ class Kraken_Trading_Bot:
     def stop_loss_order(self, completed_order):
         
         stop_loss_percent = 0.01
+        self.cash_on_hand, self.crypto_on_hand, self.open_position = self.calculate_balances()
         stop_loss_price = round(completed_order['price']*(1-stop_loss_percent), 2)
-        print(completed_order['vol'])
         stop_loss_order = self.con.query_private('AddOrder', {'pair': self.pair, 
                                                          'type': 'sell', 
                                                          'ordertype':'stop-loss', 
                                                          'price': stop_loss_price,
-                                                         'volume': completed_order['vol']})
+                                                         'volume': self.crypto_on_hand})
         if len(stop_loss_order['error']) == 0:
             logging.info(f'Placed stop loss order {stop_loss_price}.')
             return
