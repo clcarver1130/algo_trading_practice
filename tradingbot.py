@@ -66,8 +66,7 @@ class Kraken_Trading_Bot:
         self.hist_data = self.get_historical_data(self.pair, self.interval)
         self.current_price = self.hist_data.iloc[-1]['close']
         self.cash_on_hand, self.crypto_on_hand, self.open_position = self.calculate_balances()
-        self.affordable_shares = 0
-        self.calculate_affordable_shares()
+        self.affordable_shares = self.cash_on_hand/self.current_price
 
     def connect_account(self, kraken_key_filepath):
 
@@ -139,37 +138,39 @@ class Kraken_Trading_Bot:
             logging.info(f'Placed order for {self.affordable_shares} shares at {self.current_price}...')
             # Wait for it to fill or expire:
             logging.info('Waiting for order to fill...')
-            while len(k.get_open_orders()) > 0:
+            while len(self.api.get_open_orders()) > 0:
                 time.sleep(1)
-            finished_order = k.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
-            return buy_order, finished_order
-        # # If it expired, try again:
-        # if finished_order['status'] == 'expired':
-        #     logging.info('Trade timed out. Re-calculating metrics and retrying trade.')
+            completed_order = self.api.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
+            return buy_order, completed_order
         else:
             logging.info(f"Buy order error: {buy_order['error'][0]}")
             return
 
-    def exit_logic(self):
+    def exit_logic(self, seconds_toCancel=60):
         
         '''Cancel our outstanding stop-loss order and close our open position - hopefully for a large return :)'''
         
         # Cancel stop loss order:
         try:
-            stopLoss_id = k.get_open_orders().index[0]
-            k.cancel_open_order(stopLoss_id)
+            stopLoss_id = self.api.get_open_orders().index[0]
+            self.api.cancel_open_order(stopLoss_id)
         except:
             logging.info('No stop loss order to cancel.')
         
         # Create sell order:
-        otype = 'sell'
-        sell_order = api.query_private('AddOrder', {'pair': pair,
-                                               'type': otype,
+        sell_order = self.con.query_private('AddOrder', {'pair': self.pair,
+                                               'type': 'sell',
                                                'ordertype':'limit',
-                                               'price': current_price,
-                                               'volume': crypto_on_hand,
-                                               'expiretm': '+60'})
-        if len(order['error']) == 0:
-            logging.info('Sold {shares} shares at {price}'.format(shares=crypto_on_hand, price=current_price))
+                                               'price': self.current_price,
+                                               'volume': self.crypto_on_hand,
+                                               'expiretm': f'+{seconds_toCancel}'})
+        if len(sell_order['error']) == 0:
+            logging.info(f'Placed order to sell {self.crypto_on_hand} shares at {self.current_price}.')
+            # Wait for it to fill or expire:
+            logging.info('Waiting for order to fill...')
+            while len(self.api.get_open_orders()) > 0:
+                time.sleep(1)
+            completed_order = self.api.get_closed_orders()[0].loc[sell_order['result']['txid'][0]]
+            return sell_order, completed_order
         else:
-            logging.info('Trade Canceled: {error}'.format(error=order['error']))
+            logging.info(f'Sell order error: {sell_order['error'][0]}.')

@@ -42,24 +42,28 @@ def main():
 
     action = bot.strategy(bot.hist_data, bot.open_position)
     if action == 'buy':
-        placed_order, finished_order = bot.limit_buy_order()
-        while len(k.get_open_orders()) > 0:
-            time.sleep(1)
-        completed_order = k.get_closed_orders()[0].loc[buy_order['result']['txid'][0]]
+        placed_order, completed_order = bot.limit_buy_order()
         if completed_order['status'] == 'expired':
-            logging.info('Trade timed out. Re-calculating metrics and retrying trade.')
-            buy_order
-        bot.stop_loss_order()
+            logging.info('Buy order timed out. Re-calculating metrics and retrying trade.')
+            main()
+        else:
+            logging.info('Buy order complete. Placing stop loss order.')
+            bot.stop_loss_order()
     elif action == 'sell':
-        bot.exit_logic()
+        placed_order, completed_order = bot.exit_logic()
+        if completed_order['status'] == 'expired':
+            logging.info('Sell order timed out. Re-calculating metrics and retrying trade.')
+            main()
+        else:
+            logging.info('Sell order complete.')
     else:
         logging.info('Holding position')
         pass
 
 if __name__ == '__main__':
     logging.info('Starting script...')
-    schedule.run(main)
     schedule.every(4).hours.do(main)
+    schedule.run_all()
     while True:
         schedule.run_pending()
         time.sleep(1)
