@@ -155,7 +155,7 @@ class Kraken_Trading_Bot:
                                                          'ordertype':'stop-loss', 
                                                          'price': stop_loss_price,
                                                          'volume': completed_order['vol']})
-         if len(stop_loss_order['error']) == 0:
+        if len(stop_loss_order['error']) == 0:
             logging.info(f'Placed stop loss order {stop_loss_price}.')
             return
         else:
