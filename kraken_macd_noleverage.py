@@ -8,6 +8,7 @@ from tradingbot import Kraken_Trading_Bot
 FIAT = 'ZUSD'
 CRYPTO = 'XETH'
 INTERVAL = 240 # 4 hours
+STOP_LOSS_PERCENT = 0.02
 
 def kraken_macdStrategy(hist_data, position_flag):
 
@@ -48,7 +49,7 @@ def main():
             main()
         else:
             logging.info('Buy order complete. Placing stop loss order.')
-            bot.stop_loss_order(completed_order)
+            bot.stop_loss_order(completed_order, STOP_LOSS_PERCENT)
     elif action == 'sell':
         placed_order, completed_order = bot.exit_logic()
         if completed_order['status'] == 'expired':
