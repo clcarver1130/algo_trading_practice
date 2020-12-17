@@ -146,9 +146,8 @@ class Kraken_Trading_Bot:
             logging.info(f"Buy order error: {buy_order['error'][0]}")
             return
 
-    def stop_loss_order(self, completed_order):
+    def stop_loss_order(self, completed_order, stop_loss_percent):
         
-        stop_loss_percent = 0.01
         self.cash_on_hand, self.crypto_on_hand, self.open_position = self.calculate_balances()
         stop_loss_price = round(completed_order['price']*(1-stop_loss_percent), 2)
         stop_loss_order = self.con.query_private('AddOrder', {'pair': self.pair, 
