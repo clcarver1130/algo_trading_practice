@@ -3,11 +3,9 @@ import schedule
 import time
 from logger import logging
 import krakenex
-from pykrakenapi import KrakenAPI 
+from pykrakenapi import KrakenAPI
 
-
-
-class Kraken_Trading_Bot:
+class Bot:
 
     """
     A class used to execute trading strategies and place orders on Kraken.
@@ -118,7 +116,7 @@ class Kraken_Trading_Bot:
         return cash_on_hand, crypto_on_hand, open_position
 
     def calculate_affordable_shares(self):
-        
+
         self.affordable_shares = self.cash_on_hand/self.current_price
         return
 
@@ -147,12 +145,12 @@ class Kraken_Trading_Bot:
             return
 
     def stop_loss_order(self, completed_order, stop_loss_percent):
-        
+
         self.cash_on_hand, self.crypto_on_hand, self.open_position = self.calculate_balances()
         stop_loss_price = round(completed_order['price']*(1-stop_loss_percent), 2)
-        stop_loss_order = self.con.query_private('AddOrder', {'pair': self.pair, 
-                                                         'type': 'sell', 
-                                                         'ordertype':'stop-loss', 
+        stop_loss_order = self.con.query_private('AddOrder', {'pair': self.pair,
+                                                         'type': 'sell',
+                                                         'ordertype':'stop-loss',
                                                          'price': stop_loss_price,
                                                          'volume': self.crypto_on_hand})
         if len(stop_loss_order['error']) == 0:
@@ -161,20 +159,20 @@ class Kraken_Trading_Bot:
         else:
             logging.info(f"Stop loss order error: {stop_loss_order['error'][0]}")
             return
-        
+
         return
-    
+
     def exit_logic(self, seconds_toCancel=60):
-        
+
         '''Cancel our outstanding stop-loss order and close our open position - hopefully for a large return :)'''
-        
+
         # Cancel stop loss order:
         try:
             stopLoss_id = self.api.get_open_orders().index[0]
             self.api.cancel_open_order(stopLoss_id)
         except:
             logging.info('No stop loss order to cancel.')
-        
+
         # Create sell order:
         sell_order = self.con.query_private('AddOrder', {'pair': self.pair,
                                                'type': 'sell',
