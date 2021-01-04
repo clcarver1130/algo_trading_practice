@@ -9,6 +9,7 @@ import dash_table
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
+from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import krakenex
 from pykrakenapi import KrakenAPI
@@ -97,17 +98,18 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
 def load_layout():
 
-    # Load data:
-    df, df_display = load_pastTrades(kraken_key_filepath)
-
     # BUILD CONTAINERS
 
     # 1. Header:
     markdown_text = f'''
                     # ETH Trading Bot Dashboard
-                    Last refresh was: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
+                    *Last refresh was: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}*
                     ___
                      '''
+
+
+    # Load data with callback:
+    df, df_display = load_pastTrades(kraken_key_filepath)
 
     # Cards:
     current_capital, abs_change, pct_change = calculate_cards(df)
@@ -115,10 +117,8 @@ def load_layout():
     card_abs = dbc.Card(dbc.CardBody([html.H4("Profit/Loss", className="card-title"), html.P(f"{abs_change}", className="card-text")]), color=calculate_color(abs_change))
     card_pct = dbc.Card(dbc.CardBody([html.H4("Profit/Loss (%)", className="card-title"), html.P(f"{pct_change}", className="card-text")]), color=calculate_color(pct_change))
 
-
     # Table:
     table = dbc.Table.from_dataframe(df_display, striped=True, bordered=True, )
-
 
     # BUILD LAYOUT:
     return html.Div([
@@ -130,15 +130,16 @@ def load_layout():
                         dbc.Col(card_abs),
                         dbc.Col(card_pct)
                         ]),
-
+                html.Hr(),
                 # Row 3: Table
                 dbc.Row(dbc.Col(table), style={'margin-top': '20px'})
+                    ], style={'marginLeft': 25, 'marginTop': 25, 'marginRight': 25, 'marginBottom': 25})
 
 
-
-                    ])
 
 app.layout = load_layout
 
+
+
 if __name__ == '__main__':
-    app.run_server(debug=True, host='0.0.0.0', port=8050)
+    app.run_server(debug=True, host='0.0.0.0', port=8000)

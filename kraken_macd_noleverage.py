@@ -7,7 +7,7 @@ from tradingbot import Bot
 FIAT = 'ZUSD'
 CRYPTO = 'XETH'
 INTERVAL = 240 # 4 hours
-STOP_LOSS_PERCENT = 0.02
+STOP_LOSS_PERCENT = 0.03
 
 def kraken_macdStrategy(hist_data, position_flag):
 
