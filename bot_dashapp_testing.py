@@ -201,15 +201,26 @@ def load_layout():
                             [
                 # Row 1: Header
                 dbc.Row(dbc.Col(html.Div([dcc.Markdown(children=markdown_text)]))),
+                # Row 2: Filter
                 dbc.Row(dbc.Col(table_filter, width=4), style={'margin-top': '20px'}),
                 html.Hr(),
+                # Row 3: Profit/Loss Cards
+                html.H4('Performance metrics:'),
                 dbc.Row([
                         dbc.Col(html.Div(id='capital')),
                         dbc.Col(html.Div(id='abs_change')),
                         dbc.Col(html.Div(id='pct_change'))
                         ]),
                 html.Hr(),
-                # Row 3: Table
+                html.H4('Strategy metrics:'),
+                # Row 4: Strategy info:
+                # dbc.Row([
+                #         dbc.Col(html.Div(id='trade_count')),
+                #         dbc.Col(html.Div(id='winning_pct')),
+                #         dbc.Col(html.Div(id='pct_change'))
+                #         ]),
+                # Row 5: Table
+                html.H4('Trade data:'),
                 dbc.Row(dbc.Col(html.Div(id='trade_table')), style={'margin-top': '20px'})
                             ], style={'marginLeft': 25, 'marginTop': 25, 'marginRight': 25, 'marginBottom': 25}
                         )
@@ -227,6 +238,7 @@ def load_table(since_date):
 def load_changes(since_date):
     current_capital, abs_change, pct_change = calculate_changes(since_date)
     return capital_card(current_capital), absChange_card(abs_change), pctChange_card(pct_change)
+
 
 
 if __name__ == '__main__':
