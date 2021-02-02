@@ -35,10 +35,12 @@ def load_data(start):
     unix_start = api.datetime_to_unixtime(pd.to_datetime(start))
     while count < total_count:
         df, all_count = api.get_trades_history(start=unix_start, ofs=count)
+        df = df[df['pair'] == CRYPTO + FIAT]
         df_list.append(df)
         total_count = all_count
         count += len(df)
     df = pd.concat(df_list).reset_index()
+    df = df.drop_duplicates()
 
     # Convert to Central time:
     df['dtime'] = pd.to_datetime(pd.to_datetime(df['dtime']).dt.tz_localize('UTC').dt.tz_convert('US/Central').dt.strftime('%Y-%m-%d %H:%M:%S'))
@@ -161,7 +163,12 @@ def calculate_changes(start):
     current_capital = calculate_capital()
     abs_change = round(current_capital - starting_capital, 2)
     pct_change = round(((current_capital - starting_capital)/starting_capital)*100, 2)
-    return current_capital, abs_change, pct_change
+    num_trades = len(df_trade)
+    num_wins = len(df_trade[df_trade['winning_trade'] == 1])
+    win_pct = int(100*(num_wins/num_trades))
+    avg_win = round(df_trade[df_trade['winning_trade'] == 1]['pct_return'].mean(), 3)
+    avg_loss = round(df_trade[df_trade['winning_trade'] == 0]['pct_return'].mean(), 3)
+    return current_capital, abs_change, pct_change, num_trades, num_wins, win_pct, avg_win, avg_loss
 
 def table_card(df):
     return dbc.Table.from_dataframe(df, style={'textAlign': 'left'})
@@ -175,6 +182,20 @@ def absChange_card(abs_change):
 def pctChange_card(pct_change):
     return dbc.Card(dbc.CardBody([html.H4("Profit/Loss (%)", className="card-title"), html.P(f"{pct_change}%", className="card-text")]), color=calculate_color(pct_change))
 
+def numTrades_card(num_trades):
+    return dbc.Card(dbc.CardBody([html.H4("Trades", className="card-title"), html.P(num_trades, className="card-text")]))
+
+def numWins_card(num_wins):
+    return dbc.Card(dbc.CardBody([html.H4("Wins", className="card-title"), html.P(num_wins, className="card-text")]))
+
+def winPct_card(win_pct):
+    return dbc.Card(dbc.CardBody([html.H4("Win Percentage", className="card-title"), html.P(f"{win_pct}%", className="card-text")]))
+
+def avgWin_card(avg_win):
+    return dbc.Card(dbc.CardBody([html.H4("Average Win", className="card-title"), html.P(as_percent(avg_win), className="card-text")]))
+
+def avgLoss_card(avg_loss):
+    return dbc.Card(dbc.CardBody([html.H4("Average Loss", className="card-title"), html.P(as_percent(avg_loss), className="card-text")]))
 
 ### Build the Web App:
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
@@ -214,11 +235,14 @@ def load_layout():
                 html.Hr(),
                 html.H4('Strategy metrics:'),
                 # Row 4: Strategy info:
-                # dbc.Row([
-                #         dbc.Col(html.Div(id='trade_count')),
-                #         dbc.Col(html.Div(id='winning_pct')),
-                #         dbc.Col(html.Div(id='pct_change'))
-                #         ]),
+                dbc.Row([
+                        dbc.Col(html.Div(id='num_trades')),
+                        dbc.Col(html.Div(id='num_wins')),
+                        dbc.Col(html.Div(id='win_pct')),
+                        dbc.Col(html.Div(id='avg_win')),
+                        dbc.Col(html.Div(id='avg_loss'))
+                        ]),
+                html.Hr(),
                 # Row 5: Table
                 html.H4('Trade data:'),
                 dbc.Row(dbc.Col(html.Div(id='trade_table')), style={'margin-top': '20px'})
@@ -234,10 +258,18 @@ def load_table(since_date):
     df_display = load_displayTable(since_date)
     return table_card(df_display)
 
-@app.callback(Output('capital', 'children'), Output('abs_change', 'children'), Output('pct_change', 'children'), [Input('date-input', 'value')])
+@app.callback(Output('capital', 'children'),
+              Output('abs_change', 'children'),
+              Output('pct_change', 'children'),
+              Output('num_trades', 'children'),
+              Output('num_wins', 'children'),
+              Output('win_pct', 'children'),
+              Output('avg_win', 'children'),
+              Output('avg_loss', 'children'),
+              [Input('date-input', 'value')])
 def load_changes(since_date):
-    current_capital, abs_change, pct_change = calculate_changes(since_date)
-    return capital_card(current_capital), absChange_card(abs_change), pctChange_card(pct_change)
+    current_capital, abs_change, pct_change, num_trades, num_wins, win_pct, avg_win, avg_loss = calculate_changes(since_date)
+    return capital_card(current_capital), absChange_card(abs_change), pctChange_card(pct_change), numTrades_card(num_trades), numWins_card(num_wins), winPct_card(win_pct), avgWin_card(avg_win), avgLoss_card(avg_loss)
 
 
 
