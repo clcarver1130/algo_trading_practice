@@ -32,7 +32,7 @@ ipython @ file:///opt/concourse/worker/volumes/live/7ea70a71-5624-4799-50b3-3b90
 ipython-genutils==0.2.0
 jdcal==1.4.1
 jedi @ file:///opt/concourse/worker/volumes/live/114a62c0-dd60-4a40-6382-85abb31b5f6e/volume/jedi_1592841953086/work
-Jinja2==2.11.2
+Jinja2==2.11.3
 joblib==0.15.1
 json5 @ file:///home/conda/feedstock_root/build_artifacts/json5_1591810480056/work
 jsonschema==3.2.0
