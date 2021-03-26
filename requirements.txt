@@ -88,7 +88,7 @@ PySocks==1.7.1
 pytest==5.4.3
 python-dateutil==2.8.1
 pytz==2020.1
-PyYAML==5.3.1
+PyYAML==5.4
 pyzmq==19.0.1
 regex @ file:///opt/concourse/worker/volumes/live/5c3450d5-f152-477e-507e-094a7be51d80/volume/regex_1593435586246/work
 requests @ file:///tmp/build/80754af9/requests_1592841827918/work
