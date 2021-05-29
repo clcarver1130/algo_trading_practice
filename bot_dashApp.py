@@ -1,5 +1,6 @@
 ### Standard imports:
 import datetime
+import time
 
 ### Third party imports:
 import pandas as pd
@@ -39,6 +40,7 @@ def load_data(start):
         df_list.append(df)
         total_count = all_count
         count += len(df)
+        time.sleep(1)
     df = pd.concat(df_list).reset_index()
     df = df.drop_duplicates()
 
