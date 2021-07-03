@@ -106,5 +106,6 @@ venv.bak/
 # other files
 cam.py
 kraken_keys.py
+kraken_keys_ben.py
 *_keys.py
 logins.py
