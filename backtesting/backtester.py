@@ -75,50 +75,77 @@ class BackcastStrategy:
     def __init__(self, strategy):
         self.strategy = strategy
         self.capital = None
-        self.symbol = None
+        self.cryto_sym = None
+        self.fiat_sym = None
         self.data_agg = None
         self.period_check = None
         self.periods_needed = None
         self.trades = dict()
 
-    def set_parameters(self, starting_capital:int, kraken_pair:str, data_agg:int, start_dt:str, end_dt:str, period_check, periods_needed):
+    def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, periods_needed:int):
         self.starting_capital = starting_capital
         self.capital = starting_capital
-        self.pair = kraken_pair
-        self.agg = data_agg
+        self.cryto_sym = crypto_sym
+        self.fiat_sym = fiat_sym
+        self.agg = data_agg  # must be: 1m, 5m, 15m, 1h, 6h, or 1d
         self.start = start_dt
         self.end = end_dt
-        self.period_check = period_check
-        self.periods_needed = periods_needed
         self.backcast_data = None
+        self.periods_needed = periods_needed
         return
 
-    def str_dateTo_unix(dt: str):
+    def _str_dateTo_unix(self, dt: str):
 
-        '''Converts a string representation of a date in the YYYY-MM_DD format to datetime object.'''
+        """Converts a string representation of a date in the YYYY-MM_DD format to a unix timestamp."""
 
-        date = datetime.strptime(dt, '%Y-%m-%d')
+        return datetime.strptime(dt, '%Y-%m-%d').timestamp()
+
+    def next_smallest_agg(self, agg, current_min_intervals):
+
+        for i, interval in enumerate(current_min_intervals):
+            if interval < agg:
+                continue
+            else:
+                return current_min_intervals[i-1]
 
     def _get_backcast_data(self):
 
-        # Connect to Kraken:
-        con = krakenex.API()
-        api = KrakenAPI(con)
+        current_min_intervals = [1, 5, 15, 60, 720, 1440]
 
-        # Load past trading data:
-        last = 0
-        total_count = 1
-        df_list = []
-        unix_start = api.datetime_to_unixtime(datetime.strptime(self.start, '%Y-%m-%d'))
-        while unix_start < total_count:
-            df, last = api.get_ohlc_data(pair=self.pair, interval=self.agg, since=unix_start)
-            df_list.append(df)
-            total_count = all_count
-            count += len(df)
-        df = pd.concat(df_list).reset_index()
-        df, last = k.get_ohlc_data(self.pair, interval=self.data_agg, ascending=True)
-        df.index = df.index.tz_localize(tz='UTC').tz_convert('US/Central')
+        # Load parameters
+        pair = self.cryto_sym + self.fiat_sym
+        if self.agg in current_min_intervals:
+            data_build_flag = False
+            query_agg = self.agg
+        else:
+            data_build_flag = True
+            query_agg = self.next_smallest_agg(self.agg, current_min_intervals)
+            print(f"{self.agg} is not a currently offered interval. Loading the {query_agg} intervals instead and building up to {self.agg}.")
+
+        # Load dataset
+        df = pd.read_csv(f"backcast_csv_data/{pair}_{query_agg}.csv", names=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'trades'])
+        df.index = pd.to_datetime(df['timestamp'], unit='s')
+
+        # Convert to correct interval:
+        if data_build_flag:
+            df = df.resample(f'{self.agg}T').agg({
+                'open': 'first',
+                'high': 'max',
+                'low': 'min',
+                'close': 'last',
+                'volume': 'sum',
+                'trades': 'sum'
+            })
+            df = df.ffill() # forward fill early NaN's
+
+        # Filter based on start and end time:
+        if self.end:
+            df = df.loc[self.start:self.end]
+        else:
+            df = df.loc[self.start:]
+
         return df
+
 
     def run_backcast(self):
 
@@ -132,10 +159,7 @@ class BackcastStrategy:
         for i in range(len(self.backcast_data) - self.periods_needed):
             df_sliced = self.backcast_data[i:self.periods_needed + i]
             current_price = df_sliced['close'][-1]
-            if position_flag:
-                action = self.strategy.entry_exit_conditions(df_sliced, position_flag, trade)
-            else:
-                action = self.strategy.entry_exit_conditions(df_sliced, position_flag)
+            action = self.strategy.action_func(df_sliced, position_flag)
             if action == 'sell':
                 # Execute sell
                 self.capital = position_amount * current_price
@@ -177,12 +201,12 @@ class BackcastStrategy:
         pct_return = (self.capital - self.starting_capital) / self.starting_capital
         print(f'''
                 # Wins: {num_wins}\n
-                Average Win: {win_avg}\n
+                Average Win: {win_avg:.2%}\n
                 # Losses: {num_loss}\n
-                Average Loss: {loss_avg}\n
-                Win %: {win_pct}\n
-                Overall return: {abs_return}\n
-                Percent return: {pct_return}\n
+                Average Loss: {loss_avg:.2%}\n
+                Win %: {win_pct:.2%}\n
+                Overall return: {abs_return:}\n
+                Percent return: {pct_return:.2%}\n
                 ''')
         return
 
@@ -250,13 +274,19 @@ def run_backtest(params):
     backtest = BackcastStrategy(strategy)
 
     # Load settings:
-    STARTING_CAPITAL = config['starting_capital']
-    PAIR = config['crypto'] + config['fiat']
-    START = config['start']
-    END = config['end']
+    backtest.set_parameters(starting_capital=config['starting_capital'],
+                            crypto_sym=config['crypto_sym'],
+                            fiat_sym=config['fiat_sym'],
+                            data_agg=config['agg'],
+                            start_dt=config['start'],
+                            end_dt=config['end'],
+                            periods_needed=config['periods_needed'])
 
-    backtest.set_parameters(2500, 'XETHZUSD', '240', 1, 39)
+    backcast_data = backtest._get_backcast_data()
     backtest.run_backcast()
+    print(backtest.trades)
+    print(backtest.backcast_results())
+    backtest.plot_trades()
 
 
 if __name__ == '__main__':

@@ -1,13 +1,14 @@
 strategy_config = dict(name='MACD_test',
-                       fiat_sym='ZUSD',
-                       crypto_sym='XETH',
+                       fiat_sym='USD',
+                       crypto_sym='ETH',
                        starting_capital=1000,
                        agg=240,  # 4 hours
-                       start='2020-01-01',
+                       start='2021-01-01',
                        end=None,
                        stop_loss=0.03,
                        trailing_stop=None,
-                       time_zone='US/Central'
+                       time_zone='US/Central',
+                       periods_needed=26,
                        )
 
 def strategy(hist_data, position_flag):
