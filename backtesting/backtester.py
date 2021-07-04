@@ -9,11 +9,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import krakenex
 from pykrakenapi import KrakenAPI
+from fpdf import FPDF
 
 # Local application imports:
+from backtesting.create_pdf import PDF
 
 # Constants:
-
 
 
 class CryptoStrategy:
@@ -74,6 +75,7 @@ class BackcastStrategy:
 
     def __init__(self, strategy):
         self.strategy = strategy
+        self.strategy_name = self.strategy.name
         self.capital = None
         self.cryto_sym = None
         self.fiat_sym = None
@@ -81,8 +83,9 @@ class BackcastStrategy:
         self.period_check = None
         self.periods_needed = None
         self.trades = dict()
+        self.datestamp = datetime.now().strftime('%Y-%m-%d_%H%M')
 
-    def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, periods_needed:int):
+    def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, min_periods_needed:int):
         self.starting_capital = starting_capital
         self.capital = starting_capital
         self.cryto_sym = crypto_sym
@@ -91,7 +94,7 @@ class BackcastStrategy:
         self.start = start_dt
         self.end = end_dt
         self.backcast_data = None
-        self.periods_needed = periods_needed
+        self.periods_needed = min_periods_needed
         return
 
     def _str_dateTo_unix(self, dt: str):
@@ -143,6 +146,7 @@ class BackcastStrategy:
             df = df.loc[self.start:self.end]
         else:
             df = df.loc[self.start:]
+            self.end = df.index[-1].date()
 
         return df
 
@@ -233,20 +237,6 @@ class BackcastStrategy:
         sns.despine()
         plt.show()
 
-def round_to_hour(dt):
-
-    '''Datetime helper function. Rounds the current time to the closest hour.'''
-
-    dt_start_of_hour = dt.replace(minute=0, second=0, microsecond=0)
-    dt_half_hour = dt.replace(minute=30, second=0, microsecond=0)
-    if dt >= dt_half_hour:
-        # round up
-        dt = dt_start_of_hour + datetime.timedelta(hours=1)
-    else:
-        # round down
-        dt = dt_start_of_hour
-    return dt
-
 def parse_args(args):
     parser = argparse.ArgumentParser(description='')
 
@@ -266,8 +256,6 @@ def run_backtest(params):
     strategy_file = __import__(args.strategy_config_file)
     func = strategy_file.strategy
     config = strategy_file.strategy_config
-    print(func)
-    print(config)
 
     # Run backtest:
     strategy = CryptoStrategy(strategy_name=config['name'], action_func=func)
@@ -280,13 +268,14 @@ def run_backtest(params):
                             data_agg=config['agg'],
                             start_dt=config['start'],
                             end_dt=config['end'],
-                            periods_needed=config['periods_needed'])
+                            min_periods_needed=config['periods_needed'])
 
-    backcast_data = backtest._get_backcast_data()
     backtest.run_backcast()
-    print(backtest.trades)
-    print(backtest.backcast_results())
-    backtest.plot_trades()
+    pdf = PDF(backtest)
+    pdf.create_report()
+    pdf.output(f"backtest_summaries/{backtest.strategy_name}_{backtest.datestamp}.pdf", 'F')
+    print('Backtest Complete. Results saved to backtest_summaries/')
+    return
 
 
 if __name__ == '__main__':
