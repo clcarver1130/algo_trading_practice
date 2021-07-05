@@ -3,17 +3,17 @@ import sys
 import argparse
 from datetime import datetime
 import os
+from importlib import import_module
 
 # Third party imports:
 import pandas as pd
 import matplotlib.pyplot as plt
+import mplfinance as mpf
 import seaborn as sns
 import krakenex
 from pykrakenapi import KrakenAPI
-from fpdf import FPDF
 
 # Local application imports:
-from backtesting.create_pdf import PDF
 
 # Constants:
 
@@ -31,7 +31,7 @@ class Trade:
 
     '''A class that keeps a memory of a trade and it's metadata over the course of the postition '''
 
-    def __init__(self):
+    def __init__(self, stop_loss=None):
         self.datetime_buy = None
         self.datetime_sell = None
         self.price_buy = None
@@ -41,12 +41,14 @@ class Trade:
         self.pct_change = 0
         self.highest_gain = 0
         self.max_drawdown = 0
+        self.stop_loss_price = stop_loss
 
     def log_buy(self, time, price):
         self.datetime_buy = time
         self.price_buy = price
+        self.stop_loss_price = self.price_buy * (1 - self.stop_loss_price) if self.stop_loss_price else None
 
-    def log_sell(self, time, price, current_capital):
+    def log_sell(self, time, price, current_capital, stop_loss=0):
         self.datetime_sell = time
         self.price_sell = price
         return {'trade_start': self.datetime_buy,
@@ -58,7 +60,8 @@ class Trade:
                 'pct_change': (self.price_sell - self.price_buy) / self.price_buy,
                 'highest_gain': self.highest_gain,
                 'max_drawdown': self.max_drawdown,
-                'current_capital': current_capital}
+                'current_capital': current_capital,
+                'stop_loss_flag': stop_loss}
 
     def log_pass(self, current_price):
         self.period_count += 1
@@ -68,6 +71,20 @@ class Trade:
             self.highest_gain = self.pct_change
         if self.pct_change < self.max_drawdown:
             self.max_drawdown = self.pct_change
+
+    def stop_loss_flag(self, stop_loss, current_min):
+
+        if self.stop_loss_price:
+            if  current_min <= self.stop_loss_price:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+
+
 
 
 class BackcastStrategy:
@@ -83,10 +100,11 @@ class BackcastStrategy:
         self.data_agg = None
         self.period_check = None
         self.periods_needed = None
+        self.stop_loss = None
         self.trades = dict()
         self.datestamp = datetime.now().strftime('%Y-%m-%d_%H%M')
 
-    def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, min_periods_needed:int):
+    def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, min_periods_needed:int, stop_loss:float):
         self.starting_capital = starting_capital
         self.capital = starting_capital
         self.cryto_sym = crypto_sym
@@ -96,6 +114,7 @@ class BackcastStrategy:
         self.end = end_dt
         self.backcast_data = None
         self.periods_needed = min_periods_needed
+        self.stop_loss = stop_loss if stop_loss else None
         return
 
     def _str_dateTo_unix(self, dt: str):
@@ -165,6 +184,13 @@ class BackcastStrategy:
             df_sliced = self.backcast_data[i:self.periods_needed + i]
             current_price = df_sliced['close'][-1]
             action = self.strategy.action_func(df_sliced, position_flag)
+            if position_flag and self.stop_loss:
+                if trade.stop_loss_flag(self.stop_loss, df_sliced['low'][-1]):
+                    self.capital = position_amount * trade.stop_loss_price
+                    position_amount = 0
+                    position_flag = False
+                    trades_dict[i] = trade.log_sell(df_sliced.index[-1], trade.stop_loss_price, self.capital, stop_loss=1)
+                    continue
             if action == 'sell':
                 # Execute sell
                 self.capital = position_amount * current_price
@@ -176,7 +202,7 @@ class BackcastStrategy:
                 position_amount = self.capital / current_price
                 self.capital = 0
                 position_flag = True
-                trade = Trade()
+                trade = Trade(self.stop_loss)
                 trade.log_buy(df_sliced.index[-1], current_price)
             elif action == 'pass':
                 if position_flag:
@@ -305,11 +331,11 @@ def run_backtest(params):
     args = parse_args(params)
     if '.py' in args.strategy_config_file:
         args.strategy_config_file = args.strategy_config_file.replace('.py', '')
-    strategy_file = __import__(args.strategy_config_file)
+    strategy_file = import_module(args.strategy_config_file)
     func = strategy_file.strategy
     config = strategy_file.strategy_config
 
-    # Run backtest:
+    # Load backtest:
     strategy = CryptoStrategy(strategy_name=config['name'], action_func=func)
     backtest = BackcastStrategy(strategy)
 
@@ -320,8 +346,10 @@ def run_backtest(params):
                             data_agg=config['agg'],
                             start_dt=config['start'],
                             end_dt=config['end'],
-                            min_periods_needed=config['periods_needed'])
+                            min_periods_needed=config['periods_needed'],
+                            stop_loss=config['stop_loss'])
 
+    # Run backtest and create report
     backtest.run_backcast()
     backtest.build_backcast_report()
     print('Backtest Complete. Results saved to backtest_summaries/')
@@ -330,9 +358,9 @@ def run_backtest(params):
 
 if __name__ == '__main__':
 
-    CLI = False
+    CLI = True
     if not CLI:
-        params = ['--strategy_config_file', 'strategy_test_config.py']
+        params = ['--strategy_config_file', 'backtest_config_files.strategy_test_config.py']
     else:
         params = sys.argv[1:]
     run_backtest(params)
