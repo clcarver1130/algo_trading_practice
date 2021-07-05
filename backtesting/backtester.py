@@ -2,6 +2,7 @@
 import sys
 import argparse
 from datetime import datetime
+import os
 
 # Third party imports:
 import pandas as pd
@@ -200,42 +201,93 @@ class BackcastStrategy:
         num_loss = len(loss)
         win_pct = num_wins / (num_wins + num_loss)
         win_avg = wins['pct_change'].mean()
+        win_max = wins['pct_change'].max()
         loss_avg = loss['pct_change'].mean()
+        loss_max = loss['pct_change'].min()
         abs_return = self.capital - self.starting_capital
         pct_return = (self.capital - self.starting_capital) / self.starting_capital
-        print(f'''
-                # Wins: {num_wins}\n
-                Average Win: {win_avg:.2%}\n
-                # Losses: {num_loss}\n
-                Average Loss: {loss_avg:.2%}\n
-                Win %: {win_pct:.2%}\n
-                Overall return: {abs_return:}\n
-                Percent return: {pct_return:.2%}\n
-                ''')
-        return
+
+        df = pd.DataFrame([
+                            ['Starting Capital', f"${self.starting_capital}"],
+                            ['Ending Capital', f"${int(self.capital)}"],
+                            ['Overall Return', f"${int(abs_return)}"],
+                            ['Percent Return', f"{pct_return:.2%}"],
+                            ['Wins', num_wins],
+                            ['Average Win', f"{win_avg:.2%}"],
+                            ['Largest Win', f"{win_max:.2%}"],
+                            ['Win Ratio', f"{win_pct:.2%}"],
+                            ['Losses', num_loss],
+                            ['Average Loss', f"{loss_avg:.2%}"],
+                            ['Largest Loss', f"{loss_max:.2%}"],
+                            ['Backcast Range', f"{self.start} to {self.end}"],
+                            ["Number of Candlesticks", f"{len(self.backcast_data)}"],
+                            ["Number of Trades", f"{len(self.trades)}"],
+                            [f"Trade to Candlestick ratio", f"{len(self.trades)/len(self.backcast_data):.2}"]
+            ])
+
+        return df
 
     def plot_trades(self):
 
+        # Plot 1:
         plt.style.use('seaborn-whitegrid')
-
         plt.figure(figsize=(30, 8))
-
         plt.plot(self.backcast_data.index, self.backcast_data['close'], lw=2)
         plt.xticks([])
-
         plt.scatter(self.trades['trade_start'], self.trades['buy_price'], marker='^', s=70, color='green')
         plt.scatter(self.trades['trade_end'], self.trades['sell_price'], marker='v', s=70, color='red')
-
         for i in range(len(self.trades)):
             plt.annotate(i, (self.trades['trade_start'][i], self.trades['buy_price'][i]), xytext=(-10, -10),
                          textcoords='offset points', fontsize=14, fontweight='bold')
-
         for i in range(len(self.trades)):
             plt.annotate(i, (self.trades['trade_end'][i], self.trades['sell_price'][i]), xytext=(-10, -10),
                          textcoords='offset points', fontsize=14, fontweight='bold')
-
         sns.despine()
-        plt.show()
+
+        # Save figure1:
+        fname = f"{self.strategy_name}_{self.datestamp}_trades"
+        filepath1 = f'backtest_summaries/{fname}.png'
+        plt.savefig(filepath1)
+
+        # Plot 2:
+        plt.style.use('seaborn-whitegrid')
+        plt.figure(figsize=(30, 8))
+        df_trades = pd.DataFrame(self.trades)
+        plt.plot([-1] + df_trades.index.tolist(), [self.starting_capital] + df_trades['current_capital'].tolist(), lw=2)
+
+        # Save figure2:
+        fname = f"{self.strategy_name}_{self.datestamp}_capital"
+        filepath2 = f'backtest_summaries/{fname}.png'
+        plt.savefig(filepath2)
+
+        return filepath1, filepath2
+
+    def build_backcast_report(self):
+
+        # Build the summary tab
+        fname = f"{self.strategy_name}_{self.datestamp}"
+        writer = pd.ExcelWriter(f"backtest_summaries/{fname}.xlsx", engine='xlsxwriter')
+        df_summary = self.backcast_results()
+        df_summary.to_excel(writer, sheet_name='Backtest Summary', index=False, header=False)
+
+        # Build the trades tab:
+        df_trades = pd.DataFrame(self.trades)
+        df_trades.to_excel(writer, sheet_name='Trades')
+
+        # Build plots:
+        plot1_filepath, plot2_filepath = self.plot_trades()
+        plot_worksheet1 = writer.book.add_worksheet(name='Trades Plot')
+        plot_worksheet1.insert_image('C2', plot1_filepath)
+        plot_worksheet2 = writer.book.add_worksheet(name='Capital Plot')
+        plot_worksheet2.insert_image('C2', plot2_filepath)
+
+        # Save the file:
+        writer.save()
+
+        # Delete files:
+        os.remove(plot1_filepath)
+        os.remove(plot2_filepath)
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='')
@@ -271,9 +323,7 @@ def run_backtest(params):
                             min_periods_needed=config['periods_needed'])
 
     backtest.run_backcast()
-    pdf = PDF(backtest)
-    pdf.create_report()
-    pdf.output(f"backtest_summaries/{backtest.strategy_name}_{backtest.datestamp}.pdf", 'F')
+    backtest.build_backcast_report()
     print('Backtest Complete. Results saved to backtest_summaries/')
     return
 
