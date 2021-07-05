@@ -1,4 +1,4 @@
-strategy_config = dict(name='MACD_test',
+strategy_config = dict(name='MACD_03stoploss',
                        fiat_sym='USD',
                        crypto_sym='ETH',
                        starting_capital=1000,

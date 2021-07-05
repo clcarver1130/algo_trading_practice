@@ -2,10 +2,13 @@
 import sys
 import argparse
 from datetime import datetime
+import os
+from importlib import import_module
 
 # Third party imports:
 import pandas as pd
 import matplotlib.pyplot as plt
+import mplfinance as mpf
 import seaborn as sns
 import krakenex
 from pykrakenapi import KrakenAPI
@@ -13,7 +16,6 @@ from pykrakenapi import KrakenAPI
 # Local application imports:
 
 # Constants:
-
 
 
 class CryptoStrategy:
@@ -29,7 +31,7 @@ class Trade:
 
     '''A class that keeps a memory of a trade and it's metadata over the course of the postition '''
 
-    def __init__(self):
+    def __init__(self, stop_loss=None):
         self.datetime_buy = None
         self.datetime_sell = None
         self.price_buy = None
@@ -39,12 +41,14 @@ class Trade:
         self.pct_change = 0
         self.highest_gain = 0
         self.max_drawdown = 0
+        self.stop_loss_price = stop_loss
 
     def log_buy(self, time, price):
         self.datetime_buy = time
         self.price_buy = price
+        self.stop_loss_price = self.price_buy * (1 - self.stop_loss_price) if self.stop_loss_price else None
 
-    def log_sell(self, time, price, current_capital):
+    def log_sell(self, time, price, current_capital, stop_loss=0):
         self.datetime_sell = time
         self.price_sell = price
         return {'trade_start': self.datetime_buy,
@@ -56,7 +60,8 @@ class Trade:
                 'pct_change': (self.price_sell - self.price_buy) / self.price_buy,
                 'highest_gain': self.highest_gain,
                 'max_drawdown': self.max_drawdown,
-                'current_capital': current_capital}
+                'current_capital': current_capital,
+                'stop_loss_flag': stop_loss}
 
     def log_pass(self, current_price):
         self.period_count += 1
@@ -67,6 +72,20 @@ class Trade:
         if self.pct_change < self.max_drawdown:
             self.max_drawdown = self.pct_change
 
+    def stop_loss_flag(self, stop_loss, current_min):
+
+        if self.stop_loss_price:
+            if  current_min <= self.stop_loss_price:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
+
+
+
 
 class BackcastStrategy:
 
@@ -74,15 +93,18 @@ class BackcastStrategy:
 
     def __init__(self, strategy):
         self.strategy = strategy
+        self.strategy_name = self.strategy.name
         self.capital = None
         self.cryto_sym = None
         self.fiat_sym = None
         self.data_agg = None
         self.period_check = None
         self.periods_needed = None
+        self.stop_loss = None
         self.trades = dict()
+        self.datestamp = datetime.now().strftime('%Y-%m-%d_%H%M')
 
-    def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, periods_needed:int):
+    def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, min_periods_needed:int, stop_loss:float):
         self.starting_capital = starting_capital
         self.capital = starting_capital
         self.cryto_sym = crypto_sym
@@ -91,7 +113,8 @@ class BackcastStrategy:
         self.start = start_dt
         self.end = end_dt
         self.backcast_data = None
-        self.periods_needed = periods_needed
+        self.periods_needed = min_periods_needed
+        self.stop_loss = stop_loss if stop_loss else None
         return
 
     def _str_dateTo_unix(self, dt: str):
@@ -143,6 +166,7 @@ class BackcastStrategy:
             df = df.loc[self.start:self.end]
         else:
             df = df.loc[self.start:]
+            self.end = df.index[-1].date()
 
         return df
 
@@ -160,6 +184,13 @@ class BackcastStrategy:
             df_sliced = self.backcast_data[i:self.periods_needed + i]
             current_price = df_sliced['close'][-1]
             action = self.strategy.action_func(df_sliced, position_flag)
+            if position_flag and self.stop_loss:
+                if trade.stop_loss_flag(self.stop_loss, df_sliced['low'][-1]):
+                    self.capital = position_amount * trade.stop_loss_price
+                    position_amount = 0
+                    position_flag = False
+                    trades_dict[i] = trade.log_sell(df_sliced.index[-1], trade.stop_loss_price, self.capital, stop_loss=1)
+                    continue
             if action == 'sell':
                 # Execute sell
                 self.capital = position_amount * current_price
@@ -171,7 +202,7 @@ class BackcastStrategy:
                 position_amount = self.capital / current_price
                 self.capital = 0
                 position_flag = True
-                trade = Trade()
+                trade = Trade(self.stop_loss)
                 trade.log_buy(df_sliced.index[-1], current_price)
             elif action == 'pass':
                 if position_flag:
@@ -196,56 +227,93 @@ class BackcastStrategy:
         num_loss = len(loss)
         win_pct = num_wins / (num_wins + num_loss)
         win_avg = wins['pct_change'].mean()
+        win_max = wins['pct_change'].max()
         loss_avg = loss['pct_change'].mean()
+        loss_max = loss['pct_change'].min()
         abs_return = self.capital - self.starting_capital
         pct_return = (self.capital - self.starting_capital) / self.starting_capital
-        print(f'''
-                # Wins: {num_wins}\n
-                Average Win: {win_avg:.2%}\n
-                # Losses: {num_loss}\n
-                Average Loss: {loss_avg:.2%}\n
-                Win %: {win_pct:.2%}\n
-                Overall return: {abs_return:}\n
-                Percent return: {pct_return:.2%}\n
-                ''')
-        return
+
+        df = pd.DataFrame([
+                            ['Starting Capital', f"${self.starting_capital}"],
+                            ['Ending Capital', f"${int(self.capital)}"],
+                            ['Overall Return', f"${int(abs_return)}"],
+                            ['Percent Return', f"{pct_return:.2%}"],
+                            ['Wins', num_wins],
+                            ['Average Win', f"{win_avg:.2%}"],
+                            ['Largest Win', f"{win_max:.2%}"],
+                            ['Win Ratio', f"{win_pct:.2%}"],
+                            ['Losses', num_loss],
+                            ['Average Loss', f"{loss_avg:.2%}"],
+                            ['Largest Loss', f"{loss_max:.2%}"],
+                            ['Backcast Range', f"{self.start} to {self.end}"],
+                            ["Number of Candlesticks", f"{len(self.backcast_data)}"],
+                            ["Number of Trades", f"{len(self.trades)}"],
+                            [f"Trade to Candlestick ratio", f"{len(self.trades)/len(self.backcast_data):.2}"]
+            ])
+
+        return df
 
     def plot_trades(self):
 
+        # Plot 1:
         plt.style.use('seaborn-whitegrid')
-
         plt.figure(figsize=(30, 8))
-
         plt.plot(self.backcast_data.index, self.backcast_data['close'], lw=2)
         plt.xticks([])
-
         plt.scatter(self.trades['trade_start'], self.trades['buy_price'], marker='^', s=70, color='green')
         plt.scatter(self.trades['trade_end'], self.trades['sell_price'], marker='v', s=70, color='red')
-
         for i in range(len(self.trades)):
             plt.annotate(i, (self.trades['trade_start'][i], self.trades['buy_price'][i]), xytext=(-10, -10),
                          textcoords='offset points', fontsize=14, fontweight='bold')
-
         for i in range(len(self.trades)):
             plt.annotate(i, (self.trades['trade_end'][i], self.trades['sell_price'][i]), xytext=(-10, -10),
                          textcoords='offset points', fontsize=14, fontweight='bold')
-
         sns.despine()
-        plt.show()
 
-def round_to_hour(dt):
+        # Save figure1:
+        fname = f"{self.strategy_name}_{self.datestamp}_trades"
+        filepath1 = f'backtest_summaries/{fname}.png'
+        plt.savefig(filepath1)
 
-    '''Datetime helper function. Rounds the current time to the closest hour.'''
+        # Plot 2:
+        plt.style.use('seaborn-whitegrid')
+        plt.figure(figsize=(30, 8))
+        df_trades = pd.DataFrame(self.trades)
+        plt.plot([-1] + df_trades.index.tolist(), [self.starting_capital] + df_trades['current_capital'].tolist(), lw=2)
 
-    dt_start_of_hour = dt.replace(minute=0, second=0, microsecond=0)
-    dt_half_hour = dt.replace(minute=30, second=0, microsecond=0)
-    if dt >= dt_half_hour:
-        # round up
-        dt = dt_start_of_hour + datetime.timedelta(hours=1)
-    else:
-        # round down
-        dt = dt_start_of_hour
-    return dt
+        # Save figure2:
+        fname = f"{self.strategy_name}_{self.datestamp}_capital"
+        filepath2 = f'backtest_summaries/{fname}.png'
+        plt.savefig(filepath2)
+
+        return filepath1, filepath2
+
+    def build_backcast_report(self):
+
+        # Build the summary tab
+        fname = f"{self.strategy_name}_{self.datestamp}"
+        writer = pd.ExcelWriter(f"backtest_summaries/{fname}.xlsx", engine='xlsxwriter')
+        df_summary = self.backcast_results()
+        df_summary.to_excel(writer, sheet_name='Backtest Summary', index=False, header=False)
+
+        # Build the trades tab:
+        df_trades = pd.DataFrame(self.trades)
+        df_trades.to_excel(writer, sheet_name='Trades')
+
+        # Build plots:
+        plot1_filepath, plot2_filepath = self.plot_trades()
+        plot_worksheet1 = writer.book.add_worksheet(name='Trades Plot')
+        plot_worksheet1.insert_image('C2', plot1_filepath)
+        plot_worksheet2 = writer.book.add_worksheet(name='Capital Plot')
+        plot_worksheet2.insert_image('C2', plot2_filepath)
+
+        # Save the file:
+        writer.save()
+
+        # Delete files:
+        os.remove(plot1_filepath)
+        os.remove(plot2_filepath)
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='')
@@ -263,13 +331,11 @@ def run_backtest(params):
     args = parse_args(params)
     if '.py' in args.strategy_config_file:
         args.strategy_config_file = args.strategy_config_file.replace('.py', '')
-    strategy_file = __import__(args.strategy_config_file)
+    strategy_file = import_module(args.strategy_config_file)
     func = strategy_file.strategy
     config = strategy_file.strategy_config
-    print(func)
-    print(config)
 
-    # Run backtest:
+    # Load backtest:
     strategy = CryptoStrategy(strategy_name=config['name'], action_func=func)
     backtest = BackcastStrategy(strategy)
 
@@ -280,20 +346,21 @@ def run_backtest(params):
                             data_agg=config['agg'],
                             start_dt=config['start'],
                             end_dt=config['end'],
-                            periods_needed=config['periods_needed'])
+                            min_periods_needed=config['periods_needed'],
+                            stop_loss=config['stop_loss'])
 
-    backcast_data = backtest._get_backcast_data()
+    # Run backtest and create report
     backtest.run_backcast()
-    print(backtest.trades)
-    print(backtest.backcast_results())
-    backtest.plot_trades()
+    backtest.build_backcast_report()
+    print('Backtest Complete. Results saved to backtest_summaries/')
+    return
 
 
 if __name__ == '__main__':
 
-    CLI = False
+    CLI = True
     if not CLI:
-        params = ['--strategy_config_file', 'strategy_test_config.py']
+        params = ['--strategy_config_file', 'backtest_config_files.strategy_test_config.py']
     else:
         params = sys.argv[1:]
     run_backtest(params)
