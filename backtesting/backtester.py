@@ -8,10 +8,12 @@ from importlib import import_module
 # Third party imports:
 import pandas as pd
 import matplotlib.pyplot as plt
-import mplfinance as mpf
+import yfinance as yf
 import seaborn as sns
 import krakenex
 from pykrakenapi import KrakenAPI
+import warnings
+warnings.filterwarnings('ignore')
 
 # Local application imports:
 
@@ -166,7 +168,7 @@ class BackcastStrategy:
             df = df.loc[self.start:self.end]
         else:
             df = df.loc[self.start:]
-            self.end = df.index[-1].date()
+            self.end = df.index[-1].date().strftime('%Y-%m-%d')
 
         return df
 
@@ -218,7 +220,7 @@ class BackcastStrategy:
 
         self.trades = pd.DataFrame.from_dict(trades_dict, orient='index').reset_index(drop=True)
 
-    def backcast_results(self):
+    def build_summary_report(self):
         df = self.trades
         df['winning_trade'] = df['pct_change'].apply(lambda x: 1 if x > 0 else 0)
         wins = df[df['winning_trade'] == 1]
@@ -253,7 +255,7 @@ class BackcastStrategy:
 
         return df
 
-    def plot_trades(self):
+    def build_trades_plot(self):
 
         # Plot 1:
         plt.style.use('seaborn-whitegrid')
@@ -272,39 +274,65 @@ class BackcastStrategy:
 
         # Save figure1:
         fname = f"{self.strategy_name}_{self.datestamp}_trades"
-        filepath1 = f'backtest_summaries/{fname}.png'
-        plt.savefig(filepath1)
+        filepath = f'backtest_summaries/{fname}.png'
+        plt.savefig(filepath)
+        return filepath
 
-        # Plot 2:
-        plt.style.use('seaborn-whitegrid')
-        plt.figure(figsize=(30, 8))
+    def build_comparison_chart(self):
+
         df_trades = pd.DataFrame(self.trades)
-        plt.plot([-1] + df_trades.index.tolist(), [self.starting_capital] + df_trades['current_capital'].tolist(), lw=2)
 
-        # Save figure2:
-        fname = f"{self.strategy_name}_{self.datestamp}_capital"
-        filepath2 = f'backtest_summaries/{fname}.png'
-        plt.savefig(filepath2)
+        # Current strategy dataset:
+        df_strategy = df_trades[['pct_change']]
+        df_strategy.index = [x.date() for x in df_trades['trade_end']]
+        df_strategy.rename(columns={'pct_change': 'strategy'}, inplace=True)
+        # plt.plot([-1] + df_trades.index.tolist(), [self.starting_capital] + df_trades['current_capital'].tolist(), lw=2)
+        # plt.plot([self.backcast_data])
 
-        return filepath1, filepath2
+        # Buy and hold dataset:
+        pair = self.cryto_sym + self.fiat_sym
+        df_bh = pd.read_csv(f"backcast_csv_data/{pair}_1440.csv", names=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'trades'])
+        df_bh.index = pd.to_datetime(df_bh['timestamp'], unit='s')
+        df_bh = df_bh.loc[self.start:self.end]
+        df = df_bh[['close']].pct_change()
+        df.rename(columns={'close': 'buy_and_hold'}, inplace=True)
+
+        # S&P 500 Dataset:
+        spy_ohlc_df = yf.download('SPY', start=self.start, end=self.end, progress=False)
+        df_spy = spy_ohlc_df[['Close']].pct_change().rename(columns={'Close': 's&p500'})
+
+        # Merge datasets and plot:
+        df_merge_temp = df.merge(df_strategy, left_index=True, right_index=True, how='left')
+        df_merge = df_merge_temp.merge(df_spy, left_index=True, right_index=True, how='left')
+        df_merge.fillna(0, inplace=True)
+        plt.style.use('seaborn-whitegrid')
+        df_merge.cumsum().plot(figsize=(30, 8))
+        fname = f"{self.strategy_name}_{self.datestamp}_compare"
+        filepath = f'backtest_summaries/{fname}.png'
+        plt.savefig(filepath)
+
+        return filepath
 
     def build_backcast_report(self):
 
         # Build the summary tab
         fname = f"{self.strategy_name}_{self.datestamp}"
         writer = pd.ExcelWriter(f"backtest_summaries/{fname}.xlsx", engine='xlsxwriter')
-        df_summary = self.backcast_results()
+        df_summary = self.build_summary_report()
         df_summary.to_excel(writer, sheet_name='Backtest Summary', index=False, header=False)
 
         # Build the trades tab:
         df_trades = pd.DataFrame(self.trades)
+        df_trades['time_held'] = [str(x) for x in df_trades['time_held']]
         df_trades.to_excel(writer, sheet_name='Trades')
 
         # Build plots:
-        plot1_filepath, plot2_filepath = self.plot_trades()
+        plot1_filepath = self.build_trades_plot()
         plot_worksheet1 = writer.book.add_worksheet(name='Trades Plot')
         plot_worksheet1.insert_image('C2', plot1_filepath)
-        plot_worksheet2 = writer.book.add_worksheet(name='Capital Plot')
+
+        plot2_filepath = self.build_comparison_chart()
+        plot_worksheet2 = writer.book.add_worksheet(name='Comparison Plot')
         plot_worksheet2.insert_image('C2', plot2_filepath)
 
         # Save the file:
@@ -313,6 +341,8 @@ class BackcastStrategy:
         # Delete files:
         os.remove(plot1_filepath)
         os.remove(plot2_filepath)
+
+        return
 
 
 def parse_args(args):
@@ -358,9 +388,9 @@ def run_backtest(params):
 
 if __name__ == '__main__':
 
-    CLI = True
+    CLI = False
     if not CLI:
-        params = ['--strategy_config_file', 'backtest_config_files.strategy_test_config.py']
+        params = ['--strategy_config_file', 'backtest_config_files.MACD_03stoploss_config.py']
     else:
         params = sys.argv[1:]
     run_backtest(params)
