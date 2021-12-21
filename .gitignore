@@ -109,3 +109,5 @@ kraken_keys.py
 kraken_keys_ben.py
 *_keys.py
 logins.py
+backtesting/backcast_csv_data/
+backtesting/backtest_summaries/

@@ -77,7 +77,7 @@ class Trade:
     def stop_loss_flag(self, stop_loss, current_min):
 
         if self.stop_loss_price:
-            if  current_min <= self.stop_loss_price:
+            if current_min <= self.stop_loss_price:
                 return True
             else:
                 return False
@@ -97,6 +97,7 @@ class BackcastStrategy:
         self.strategy = strategy
         self.strategy_name = self.strategy.name
         self.capital = None
+        self.starting_capital = None
         self.cryto_sym = None
         self.fiat_sym = None
         self.data_agg = None
@@ -109,6 +110,7 @@ class BackcastStrategy:
     def set_parameters(self, starting_capital:int, crypto_sym:str, fiat_sym:str, data_agg:int, start_dt:str, end_dt:str, min_periods_needed:int, stop_loss:float):
         self.starting_capital = starting_capital
         self.capital = starting_capital
+        self.starting_capital = starting_capital
         self.cryto_sym = crypto_sym
         self.fiat_sym = fiat_sym
         self.agg = data_agg  # must be: 1m, 5m, 15m, 1h, 6h, or 1d
@@ -180,12 +182,13 @@ class BackcastStrategy:
         position_amount = 0
         position_flag = False
         trades_dict = dict()
+        trade = None
 
         self.backcast_data = self._get_backcast_data()
         for i in range(len(self.backcast_data) - self.periods_needed):
             df_sliced = self.backcast_data[i:self.periods_needed + i]
             current_price = df_sliced['close'][-1]
-            action = self.strategy.action_func(df_sliced, position_flag)
+            action = self.strategy.action_func(df_sliced, position_flag, trade)
             if position_flag and self.stop_loss:
                 if trade.stop_loss_flag(self.stop_loss, df_sliced['low'][-1]):
                     self.capital = position_amount * trade.stop_loss_price
@@ -199,6 +202,7 @@ class BackcastStrategy:
                 position_amount = 0
                 position_flag = False
                 trades_dict[i] = trade.log_sell(df_sliced.index[-1], current_price, self.capital)
+                trade = None
             elif action == 'buy':
                 # Execute buy:
                 position_amount = self.capital / current_price
@@ -284,29 +288,39 @@ class BackcastStrategy:
 
         # Current strategy dataset:
         df_strategy = df_trades[['pct_change']]
-        df_strategy.index = [x.date() for x in df_trades['trade_end']]
-        df_strategy.rename(columns={'pct_change': 'strategy'}, inplace=True)
-        # plt.plot([-1] + df_trades.index.tolist(), [self.starting_capital] + df_trades['current_capital'].tolist(), lw=2)
-        # plt.plot([self.backcast_data])
+        df_strategy['date'] = [x.date() for x in df_trades['trade_end']]
+        df_strategy['abs_returns'] = ((1 + df_strategy['pct_change']).cumprod()) * self.starting_capital
+        df_strategy_grouped = df_strategy.groupby('date', as_index=False).tail(1)
+        df_strategy_grouped.rename(columns={'abs_returns': 'strategy'}, inplace=True)
+        df_strategy_grouped.set_index('date', inplace=True)
+        df_strategy = df_strategy_grouped[['strategy']]
+
+
 
         # Buy and hold dataset:
         pair = self.cryto_sym + self.fiat_sym
         df_bh = pd.read_csv(f"backcast_csv_data/{pair}_1440.csv", names=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'trades'])
         df_bh.index = pd.to_datetime(df_bh['timestamp'], unit='s')
         df_bh = df_bh.loc[self.start:self.end]
-        df = df_bh[['close']].pct_change()
-        df.rename(columns={'close': 'buy_and_hold'}, inplace=True)
+        df_bh['pct_change'] = df_bh['close'].pct_change()
+        df_bh['abs_returns'] = ((1 + df_bh['pct_change']).cumprod()) * self.starting_capital
+        df_bh.rename(columns={'abs_returns': 'buy_and_hold'}, inplace=True)
+        df_bh = df_bh[['buy_and_hold']]
 
         # S&P 500 Dataset:
-        spy_ohlc_df = yf.download('SPY', start=self.start, end=self.end, progress=False)
-        df_spy = spy_ohlc_df[['Close']].pct_change().rename(columns={'Close': 's&p500'})
+        df_spy = yf.download('SPY', start=self.start, end=self.end, progress=False)
+        df_spy['pct_change'] = df_spy[['Close']].pct_change()
+        df_spy['abs_returns'] = ((1 + df_spy['pct_change']).cumprod()) * self.starting_capital
+        df_spy.rename(columns={'abs_returns': 's&p500'}, inplace=True)
+        df_spy = df_spy[['s&p500']]
 
         # Merge datasets and plot:
-        df_merge_temp = df.merge(df_strategy, left_index=True, right_index=True, how='left')
+        df_merge_temp = df_bh.merge(df_strategy, left_index=True, right_index=True, how='left')
         df_merge = df_merge_temp.merge(df_spy, left_index=True, right_index=True, how='left')
-        df_merge.fillna(0, inplace=True)
+        df_merge.iloc[0] = self.starting_capital
+        df_merge.ffill(inplace=True)
         plt.style.use('seaborn-whitegrid')
-        df_merge.cumsum().plot(figsize=(30, 8))
+        df_merge.plot(figsize=(30, 8))
         fname = f"{self.strategy_name}_{self.datestamp}_compare"
         filepath = f'backtest_summaries/{fname}.png'
         plt.savefig(filepath)
@@ -390,7 +404,7 @@ if __name__ == '__main__':
 
     CLI = False
     if not CLI:
-        params = ['--strategy_config_file', 'backtest_config_files.MACD_03stoploss_config.py']
+        params = ['--strategy_config_file', 'backtest_config_files.CNN_entry_config.py']
     else:
         params = sys.argv[1:]
     run_backtest(params)
