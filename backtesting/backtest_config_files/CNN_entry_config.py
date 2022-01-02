@@ -5,7 +5,7 @@ strategy_config = dict(name='CNN_entry_6prdexit',
                        agg=240,  # 4 hours
                        start='2021-01-01',
                        end=None,
-                       stop_loss=0.1,
+                       stop_loss=None,
                        trailing_stop=None,
                        time_zone='US/Central',
                        periods_needed=42,
@@ -24,7 +24,7 @@ def strategy(hist_data, position_flag, trade):
             return 'sell'
         else:
             return 'pass'
-    elif (pred > 0.5):
+    elif (pred > 0.90):
         return 'buy'
     else:
         return 'pass'

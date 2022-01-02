@@ -188,7 +188,7 @@ class BackcastStrategy:
         for i in range(len(self.backcast_data) - self.periods_needed):
             df_sliced = self.backcast_data[i:self.periods_needed + i]
             current_price = df_sliced['close'][-1]
-            action = self.strategy.action_func(df_sliced, position_flag, trade)
+            action, pred = self.strategy.action_func(df_sliced, position_flag, trade)
             if position_flag and self.stop_loss:
                 if trade.stop_loss_flag(self.stop_loss, df_sliced['low'][-1]):
                     self.capital = position_amount * trade.stop_loss_price
@@ -404,7 +404,7 @@ if __name__ == '__main__':
 
     CLI = False
     if not CLI:
-        params = ['--strategy_config_file', 'backtest_config_files.CNN_entry_config.py']
+        params = ['--strategy_config_file', 'backtest_config_files.CNN_entry_config_1d7periods.py']
     else:
         params = sys.argv[1:]
     run_backtest(params)
