@@ -24,6 +24,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.idea
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -109,3 +110,5 @@ kraken_keys.py
 kraken_keys_ben.py
 *_keys.py
 logins.py
+backtesting/backcast_csv_data/
+backtesting/backtest_summaries/

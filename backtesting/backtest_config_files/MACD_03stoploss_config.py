@@ -5,13 +5,13 @@ strategy_config = dict(name='MACD_03stoploss',
                        agg=240,  # 4 hours
                        start='2021-01-01',
                        end=None,
-                       stop_loss=0.03,
-                       trailing_stop=None,
+                       stop_loss=0.1,
+                       take_profit=0.05,
                        time_zone='US/Central',
                        periods_needed=26,
                        )
 
-def strategy(hist_data, position_flag):
+def strategy(hist_data, position_flag, trade):
 
     # MACD calculation:
     FAST, SLOW, SIGNAL = 12, 26, 9
