@@ -1,10 +1,12 @@
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
+
 strategy_config = dict(name='MACD_03stoploss',
                        fiat_sym='USD',
                        crypto_sym='ETH',
                        starting_capital=1000,
-                       agg=240,  # 4 hours
-                       start='2021-01-01',
-                       end=None,
+                       agg=TimeFrame(4, TimeFrameUnit.Hour),  # 4 hours
+                       start='2022-01-01',
+                       end='2022-06-30',
                        stop_loss=0.1,
                        take_profit=0.05,
                        time_zone='US/Central',

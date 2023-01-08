@@ -2,6 +2,7 @@
 import sys
 import argparse
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import os
 from importlib import import_module
 
@@ -10,8 +11,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
 import seaborn as sns
-import krakenex
-from pykrakenapi import KrakenAPI
+from alpaca.data import CryptoHistoricalDataClient
+from alpaca.data.requests import CryptoBarsRequest
+from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -186,6 +188,23 @@ class BackcastStrategy:
 
         return df
 
+    def _get_backcast_dataAlpaca(self):
+
+        crypto_data_client = CryptoHistoricalDataClient()
+
+        start = datetime.strptime(self.start, '%Y-%m-%d') if self.start else datetime.today() - relativedelta(months=+6)
+        end = datetime.strptime(self.end, '%Y-%m-%d') if self.end else None
+
+        request_params = CryptoBarsRequest(
+            symbol_or_symbols=[f'{self.cryto_sym}/{self.fiat_sym}'],
+            timeframe=TimeFrame(4, TimeFrameUnit.Hour),
+            start=start,
+            end=end)
+
+        bars = crypto_data_client.get_crypto_bars(request_params).df
+        bars.index = bars.index.map(lambda x: x[1])  # index returned as tuple. Replace with just the datetime
+        bars.index = [x.tz_localize(None) for x in bars.index]
+        return bars
 
     def run_backcast(self):
 
@@ -196,7 +215,9 @@ class BackcastStrategy:
         trades_dict = dict()
         trade = None
 
-        self.backcast_data = self._get_backcast_data()
+        # self.backcast_data = self._get_backcast_data()
+        self.backcast_data = self._get_backcast_dataAlpaca()
+
         for i in range(len(self.backcast_data) - self.periods_needed):
             df_sliced = self.backcast_data[i:self.periods_needed + i]
             current_price = df_sliced['close'][-1]
@@ -318,9 +339,9 @@ class BackcastStrategy:
 
         # Buy and hold dataset:
         pair = self.cryto_sym + self.fiat_sym
-        df_bh = pd.read_csv(f"backcast_csv_data/{pair}_1440.csv", names=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'trades'])
-        df_bh.index = pd.to_datetime(df_bh['timestamp'], unit='s')
-        df_bh = df_bh.loc[self.start:self.end]
+        df_bh = self.backcast_data
+        # df_bh.index = pd.to_datetime(df_bh['timestamp'], unit='s')
+        # df_bh = df_bh.loc[self.start:self.end]
         df_bh['pct_change'] = df_bh['close'].pct_change()
         df_bh['abs_returns'] = ((1 + df_bh['pct_change']).cumprod()) * self.starting_capital
         df_bh.rename(columns={'abs_returns': 'buy_and_hold'}, inplace=True)

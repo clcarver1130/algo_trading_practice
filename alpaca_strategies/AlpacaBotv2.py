@@ -53,7 +53,10 @@ class AlpacaBot:
             start=datetime.strptime(start, '%Y-%m-%d'),
             end=end)
 
-        return self.crypto_data_client.get_crypto_bars(request_params).df
+        bars =self.crypto_data_client.get_crypto_bars(request_params).df
+        bars.index = bars.index.map(lambda x: x[1])
+        bars.index = [x.tz_localize(None) for x in bars.index]
+        return bars
 
     def check_open_positions(self):
         return True if self.trading_client.get_all_positions() else False
