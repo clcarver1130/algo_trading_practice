@@ -106,9 +106,10 @@ venv.bak/
 
 # other files
 cam.py
-kraken_keys.py
+old_kraken_strategies/kraken_keys.py
 kraken_keys_ben.py
 *_keys.py
 logins.py
+backtesting/backtest_summaries
 backtesting/backcast_csv_data/
 backtesting/backtest_summaries/
