@@ -1,7 +1,7 @@
 # Standard imports:
 from logger import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Third party imports:
 from alpaca.trading.client import TradingClient
@@ -11,11 +11,10 @@ from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.requests import MarketOrderRequest, LimitOrderRequest, StopOrderRequest, StopLimitOrderRequest, TrailingStopOrderRequest, StopLossRequest, TakeProfitRequest, GetOrdersRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderStatus, QueryOrderStatus
 
-
-
 # Local imports:
 from alpaca_strategies.alpaca_keys import alpaca_live_keyid, alpaca_live_secret
 from alpaca_strategies.alpaca_keys import alpaca_paper_keyid, alpaca_paper_secret
+from helper_functions import round_down
 
 # Constants:
 LIVE = False
@@ -36,7 +35,7 @@ class AlpacaBot:
         # Account information:
         self.trading_client = self.connect_account()
         self.cash_on_hand, self.crypto_on_hand, self.open_position = self.calculate_balances()
-        self.affordable_shares = round(self.cash_on_hand / self.current_price, 3)
+        self.affordable_shares = round_down(self.cash_on_hand / self.current_price, 3)
 
     @staticmethod
     def connect_account():
@@ -47,13 +46,18 @@ class AlpacaBot:
 
     def get_historical_data(self, start=None, end=None):
 
+        if start:
+            start = start
+        else:
+            start = (datetime.now() - timedelta(hours=1))
+
         request_params = CryptoBarsRequest(
             symbol_or_symbols=[self.data_symbol],
             timeframe=self.timeframe,
-            start=datetime.strptime(start, '%Y-%m-%d'),
+            start=start,
             end=end)
 
-        bars =self.crypto_data_client.get_crypto_bars(request_params).df
+        bars=self.crypto_data_client.get_crypto_bars(request_params, feed ='us').df
         bars.index = bars.index.map(lambda x: x[1])
         bars.index = [x.tz_localize(None) for x in bars.index]
         return bars
@@ -83,7 +87,7 @@ class AlpacaBot:
             limit_order_data = LimitOrderRequest(
                 symbol=self.trade_symbol,
                 limit_price=self.current_price,
-                notional=self.affordable_shares,
+                qty=self.affordable_shares,
                 side=OrderSide.BUY,
                 time_in_force=TimeInForce.GTC
             )
@@ -95,20 +99,30 @@ class AlpacaBot:
 
             # orders that satisfy params
             order_params = GetOrdersRequest(status=QueryOrderStatus.OPEN, side=OrderSide.BUY)
+            start_time = time.time()
             while len(self.trading_client.get_orders(filter=order_params)) > 0:
+                # Cancel order if it takes too long to fill
+                if time.time() - start_time > seconds_toCancel:
+                    logging.warning('Order took too long to fill. Canceling order...')
+                    self.trading_client.cancel_order_by_id(limit_order.id)
+                    break
                 time.sleep(3)
             logging.info('Order filled!')
             return limit_order.id
-        except:
-            logging.info(f'ERROR: Attempted order for {self.affordable_shares} shares at ${self.current_price:.2}')
+        except Exception as e:
+            logging.error(f'ERROR: Attempted order for {self.affordable_shares} shares at ${self.current_price:.2}')
+            logging.error(e)
             return None
 
     def close_all_positions(self):
         self.trading_client.close_all_positions(cancel_orders=True)
+        logging.info('Closed all positions!')
 
-    def oto_buy_order(self, stop_price, limit_price=None, side='stop_loss'):
+    def oto_buy_order(self, stop_price, limit_price=None, side='stop_loss', seconds_toCancel=30):
 
         '''
+
+        NOTE: 'otc' orders not currently supported with Crypto API.
 
         Parameters
         ----------
@@ -121,35 +135,43 @@ class AlpacaBot:
 
         try:
             if side == 'stop_loss':
-                buy_order = self.api.submit_order(
-                                symbol=self.symbol,
-                                notional=self.affordable_shares,
-                                side='buy',
-                                type='limit',
-                                time_in_force='gtc',
-                                order_class='oto',
-                                limit_price=self.current_price,
-                                stop_loss={'stop_price': stop_price, 'limit_price': limit_price}
-                                )
+                order_params = LimitOrderRequest(
+                    symbol=self.data_symbol,
+                    qty=self.affordable_shares,
+                    side='buy',
+                    type='limit',
+                    time_in_force='gtc',
+                    order_class='oto',
+                    limit_price=self.current_price,
+                    stop_loss={'stop_price': stop_price, 'limit_price': limit_price}
+                )
             elif side == 'take_profit':
-                buy_order = self.api.submit_order(
-                                symbol=self.symbol,
-                                notional=self.affordable_shares,
-                                side='buy',
-                                type='limit',
-                                time_in_force='gtc',
-                                order_class='oto',
-                                limit_price=self.current_price,
-                                take_profit={'limit_price': stop_price}
-                                )
+                order_params = LimitOrderRequest(
+                    symbol=self.data_symbol,
+                    qty=self.affordable_shares,
+                    side='buy',
+                    type='limit',
+                    time_in_force='gtc',
+                    order_class='oto',
+                    limit_price=self.current_price,
+                    take_profit={'limit_price': limit_price}
+                )
+            buy_order = self.trading_client.submit_order(order_data=order_params)
             logging.info(f'Placed order for {self.affordable_shares} shares at ${self.current_price:.2}...')
             logging.info('Waiting for order to fill...')
-            while len(self.api.list_orders(status='open')) > 0:
+            start_time = time.time()
+            while len(self.trading_client.get_orders(filter=order_params)) > 0:
+                # Cancel order if it takes too long to fill
+                if time.time() - start_time > seconds_toCancel:
+                    logging.warning('Order took too long to fill. Canceling order...')
+                    self.trading_client.cancel_order_by_id(buy_order.id)
+                    break
                 time.sleep(3)
             logging.info('Order filled!')
             return buy_order.id
-        except:
-            logging.info(f'ERROR: Attempted order for {self.affordable_shares} shares at ${self.current_price:.2}')
+        except Exception as e:
+            logging.error(f'ERROR: Attempted order for {self.affordable_shares} shares at ${self.current_price:.2}')
+            logging.error(e)
             return None
 
 
@@ -158,6 +180,7 @@ if __name__ == '__main__':
     # Test initializing the class:
     symbol = 'ETH/USD'
     timeframe = TimeFrame.Hour
+    start = datetime.now() - timedelta(hours=1)
     bot = AlpacaBot(symbol, timeframe)
     print('Current price:', bot.current_price)
     print('Cash on hand:', bot.cash_on_hand)
@@ -166,6 +189,6 @@ if __name__ == '__main__':
     print('Affordable shares:', bot.affordable_shares)
 
     # Test orders:
-    # buy_orderID = bot.limit_buy_order()
-    bot.close_all_positions()
-    # oto_orderID = bot.oto_buy_order(stop_price=bot.current_price*0.98)
+    buy_orderID = bot.limit_buy_order()
+    # bot.close_all_positions()
+    # oto_orderID = bot.oto_buy_order(stop_price=bot.current_price*0.98, limit_price=bot.current_price*0.975, side='stop_loss')
